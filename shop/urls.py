@@ -1,8 +1,15 @@
-# shop app urls
-from django.urls import path
-urlpatterns = []
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import StoreViewSet, CategoryViewSet, ProductViewSet, BasketViewSet, OrderViewSet
 
-from .logistics_views import LogisticsRegisterView
+router = DefaultRouter()
+router.register(r'stores', StoreViewSet)
+router.register(r'categories', CategoryViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'basket', BasketViewSet, basename='basket')
+router.register(r'orders', OrderViewSet, basename='order')
 
-# Add to urlpatterns:
-path('logistics/<int:order_id>/', LogisticsRegisterView.as_view(), name='logistics-register'),
+urlpatterns = [
+    path('api/', include(router.urls)),
+    path('api/auth/', include('rest_framework.urls')),
+]
