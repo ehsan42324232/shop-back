@@ -1,6 +1,10 @@
 Django>=4.2
 djangorestframework
 django-cors-headers
+drf-spectacular
 pandas
 openpyxl
 psycopg2-binary
+Pillow
+gunicorn
+whitenoise
