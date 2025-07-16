@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+# Import directly from views.py file, not views directory
 from .views import StoreViewSet, CategoryViewSet, ProductViewSet, BasketViewSet, OrderViewSet
 from . import authentication
 
