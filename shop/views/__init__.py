@@ -1,7 +1,4 @@
-# Import ViewSets from the main views.py file
-from ..views import StoreViewSet, CategoryViewSet, ProductViewSet, BasketViewSet, OrderViewSet
 
-# Keep the existing generic views for backward compatibility
 from rest_framework import generics, permissions
 from django.contrib.auth.models import User
 from shop.models import Store, Product, Category, Comment, Rating, Basket, Order, OrderItem
