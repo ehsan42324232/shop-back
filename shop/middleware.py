@@ -8,6 +8,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_current_store(request):
+    """
+    تابع کمکی برای دریافت فروشگاه فعلی از درخواست
+    """
+    if hasattr(request, 'store') and request.store:
+        return request.store
+    return None
+
+
 class DomainBasedStoreMiddleware(MiddlewareMixin):
     """
     میدل‌ور برای مدیریت چند فروشگاه بر اساس دامنه
