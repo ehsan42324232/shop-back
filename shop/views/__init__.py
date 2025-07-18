@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 import json
 
@@ -16,6 +16,27 @@ from shop.serializers import (
     ProductImageSerializer, CommentSerializer, RatingSerializer, BasketSerializer,
     OrderSerializer, CreateOrderSerializer, UserSerializer, ProductSerializer
 )
+
+
+# Error Handlers
+def handler404(request, exception=None):
+    """Custom 404 handler"""
+    if request.path.startswith('/api/'):
+        return JsonResponse({
+            'error': 'Resource not found',
+            'status_code': 404
+        }, status=404)
+    return HttpResponse('<h1>Page Not Found</h1><p>The requested page could not be found.</p>', status=404)
+
+
+def handler500(request):
+    """Custom 500 handler"""
+    if request.path.startswith('/api/'):
+        return JsonResponse({
+            'error': 'Internal server error',
+            'status_code': 500
+        }, status=500)
+    return HttpResponse('<h1>Server Error</h1><p>Something went wrong on our end.</p>', status=500)
 
 
 # ViewSets (these are the ones imported by urls.py)
