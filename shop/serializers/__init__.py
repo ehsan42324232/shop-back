@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from ..models import Store, Category, Product, ProductImage, Comment, Rating
-from ..storefront_models import Basket, Order, OrderItem
+from ..storefront_models import Basket, Order, OrderItem, CustomerAddress, Wishlist
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -153,3 +153,21 @@ class CreateOrderSerializer(serializers.Serializer):
             return value
         except Store.DoesNotExist:
             raise serializers.ValidationError("Store does not exist")
+
+
+class CustomerAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerAddress
+        fields = ['id', 'title', 'recipient_name', 'phone', 'province', 'city', 
+                 'address', 'postal_code', 'is_default', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+    product_id = serializers.UUIDField(write_only=True)
+    
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'product', 'product_id', 'created_at']
+        read_only_fields = ['id', 'created_at']
