@@ -4,10 +4,11 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from shop.models import Store, Category, Product, Media, Comment, Rating, Basket, Order, OrderItem
+from shop.models import Store, Category, Product, ProductImage, Comment, Rating
+from shop.storefront_models import Basket, Order, OrderItem
 from shop.serializers import (
     StoreSerializer, CategorySerializer, ProductListSerializer, ProductDetailSerializer,
-    MediaSerializer, CommentSerializer, RatingSerializer, BasketSerializer,
+    ProductImageSerializer, CommentSerializer, RatingSerializer, BasketSerializer,
     OrderSerializer, CreateOrderSerializer, UserSerializer, ProductSerializer
 )
 
@@ -140,10 +141,22 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
             
             with transaction.atomic():
+                # Get store
+                store = get_object_or_404(Store, id=store_id)
+                
+                # Calculate total amount
+                total_amount = sum(
+                    item.quantity * item.product.price 
+                    for item in basket_items
+                )
+                
                 # Create order
                 order = Order.objects.create(
                     user=request.user,
-                    store_id=store_id
+                    store=store,
+                    total_amount=total_amount,
+                    customer_name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
+                    customer_email=request.user.email,
                 )
                 
                 # Create order items
@@ -155,10 +168,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                         price_at_order=basket_item.product.price
                     )
                     
-                    # Update product stock
-                    product = basket_item.product
-                    product.stock -= basket_item.quantity
-                    product.save()
+                    # Update product stock if tracking is enabled
+                    if basket_item.product.track_inventory:
+                        product = basket_item.product
+                        product.stock -= basket_item.quantity
+                        product.save()
                 
                 # Clear basket items for this store
                 basket_items.delete()
