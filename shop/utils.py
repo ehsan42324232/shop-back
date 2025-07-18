@@ -5,6 +5,7 @@ from datetime import datetime
 from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.db import models
 from .models import Store, Category, Product, ProductAttribute, ProductAttributeValue, BulkImportLog
 
 
@@ -314,7 +315,7 @@ def get_store_analytics(store, date_from=None, date_to=None):
     """
     Get analytics data for a store
     """
-    from django.db.models import Sum, Count, Avg
+    from django.db.models import Sum, Count, Avg, F
     from datetime import datetime, timedelta
     
     if not date_from:
@@ -343,7 +344,7 @@ def get_store_analytics(store, date_from=None, date_to=None):
             'featured_products': products.filter(is_featured=True).count(),
             'low_stock_products': products.filter(
                 track_inventory=True,
-                stock__lte=models.F('low_stock_threshold')
+                stock__lte=F('low_stock_threshold')
             ).count(),
             'out_of_stock_products': products.filter(
                 track_inventory=True,
@@ -355,17 +356,20 @@ def get_store_analytics(store, date_from=None, date_to=None):
         }
     }
     
-    # Top selling products
-    from .storefront_models import OrderItem
-    top_products = OrderItem.objects.filter(
-        order__store=store,
-        order__created_at__range=[date_from, date_to]
-    ).values('product__title').annotate(
-        total_sold=Sum('quantity'),
-        total_revenue=Sum('price_at_order')
-    ).order_by('-total_sold')[:10]
-    
-    analytics['top_products'] = list(top_products)
+    # Top selling products - import OrderItem from storefront_models
+    try:
+        from .storefront_models import OrderItem
+        top_products = OrderItem.objects.filter(
+            order__store=store,
+            order__created_at__range=[date_from, date_to]
+        ).values('product__title').annotate(
+            total_sold=Sum('quantity'),
+            total_revenue=Sum('price_at_order')
+        ).order_by('-total_sold')[:10]
+        
+        analytics['top_products'] = list(top_products)
+    except ImportError:
+        analytics['top_products'] = []
     
     return analytics
 
@@ -437,9 +441,8 @@ def cleanup_old_import_files():
     """
     Clean up old import files (older than 30 days)
     """
-    from django.core.management.base import BaseCommand
-    import os
     from datetime import datetime, timedelta
+    import os
     
     cutoff_date = datetime.now() - timedelta(days=30)
     old_logs = BulkImportLog.objects.filter(created_at__lt=cutoff_date)
