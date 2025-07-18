@@ -1,320 +1,327 @@
+from django.http import HttpResponse, Http404
 from django.utils.deprecation import MiddlewareMixin
-from django.http import Http404
-from django.shortcuts import get_object_or_404
+from django.conf import settings
 from django.core.cache import cache
 from .models import Store
-import threading
+import logging
 
-# Thread-local storage for current store
-_thread_locals = threading.local()
+logger = logging.getLogger(__name__)
 
 
-class MultiTenantMiddleware(MiddlewareMixin):
+class DomainBasedStoreMiddleware(MiddlewareMixin):
     """
-    Middleware to handle multi-tenant functionality based on domain
-    """
-    
-    def process_request(self, request):
-        # Get the domain from the request
-        domain = self.get_domain_from_request(request)
-        
-        # Set current store based on domain
-        store = self.get_store_by_domain(domain)
-        
-        # Store the current store in thread-local storage
-        _thread_locals.store = store
-        
-        # Add store to request for easy access
-        request.store = store
-        
-        return None
-    
-    def get_domain_from_request(self, request):
-        """Extract domain from request"""
-        # Get host from request
-        host = request.get_host()
-        
-        # Remove port if present
-        if ':' in host:
-            host = host.split(':')[0]
-        
-        # Handle development/localhost cases
-        if host in ['localhost', '127.0.0.1', 'testserver']:
-            # For development, check for a subdomain or use a default
-            subdomain = request.META.get('HTTP_X_FORWARDED_HOST')
-            if subdomain:
-                return subdomain
-            # You can also check for a specific header or query parameter
-            # For testing purposes, return a test domain
-            return request.GET.get('domain', 'default.local')
-        
-        return host
-    
-    def get_store_by_domain(self, domain):
-        """Get store by domain with caching"""
-        # Try to get from cache first
-        cache_key = f'store_domain_{domain}'
-        store = cache.get(cache_key)
-        
-        if store is None:
-            try:
-                store = Store.objects.select_related('owner').get(
-                    domain=domain,
-                    is_active=True,
-                    is_approved=True
-                )
-                # Cache for 5 minutes
-                cache.set(cache_key, store, 300)
-            except Store.DoesNotExist:
-                store = None
-        
-        return store
-
-
-def get_current_store(request=None):
-    """
-    Get current store from thread-local storage or request
-    """
-    if request and hasattr(request, 'store'):
-        return request.store
-    
-    return getattr(_thread_locals, 'store', None)
-
-
-class APITenantMiddleware(MiddlewareMixin):
-    """
-    Middleware for API requests to handle store identification
-    For API requests, we can use different methods to identify the store
+    میدل‌ور برای مدیریت چند فروشگاه بر اساس دامنه
+    هر فروشگاه روی دامنه خودش سرو می‌شود
     """
     
     def process_request(self, request):
-        # Skip if not an API request
-        if not request.path.startswith('/api/'):
-            return None
-        
-        store = None
-        
-        # Method 1: Domain-based (same as web)
-        domain = self.get_domain_from_request(request)
-        if domain:
-            store = self.get_store_by_domain(domain)
-        
-        # Method 2: Header-based (for API clients)
-        if not store:
-            store_id = request.META.get('HTTP_X_STORE_ID')
-            if store_id:
+        """
+        پردازش درخواست و تشخیص فروشگاه بر اساس دامنه
+        """
+        try:
+            # دریافت دامنه از درخواست
+            host = request.get_host()
+            
+            # حذف www از ابتدای دامنه
+            if host.startswith('www.'):
+                host = host[4:]
+            
+            # حذف پورت از دامنه برای محیط توسعه
+            if ':' in host:
+                host = host.split(':')[0]
+            
+            # دامنه اصلی پلتفرم (برای پنل مدیریت)
+            platform_domain = getattr(settings, 'PLATFORM_DOMAIN', 'localhost')
+            
+            # اگر دامنه پلتفرم اصلی است
+            if host == platform_domain or host == 'localhost' or host == '127.0.0.1':
+                request.is_platform_request = True
+                request.store = None
+                request.store_domain = None
+                return None
+            
+            # جستجو در کش برای بهتر شدن عملکرد
+            cache_key = f'store_domain_{host}'
+            store = cache.get(cache_key)
+            
+            if store is None:
                 try:
-                    store = Store.objects.get(
-                        id=store_id,
+                    # جستجوی فروشگاه بر اساس دامنه
+                    store = Store.objects.select_related('owner').get(
+                        domain=host,
                         is_active=True,
                         is_approved=True
                     )
+                    # ذخیره در کش برای 1 ساعت
+                    cache.set(cache_key, store, 3600)
+                    
                 except Store.DoesNotExist:
-                    pass
-        
-        # Method 3: Authorization header with store info
-        if not store and request.user.is_authenticated:
-            # For authenticated users, try to get their default store
-            user_stores = Store.objects.filter(
-                owner=request.user,
-                is_active=True,
-                is_approved=True
-            )
-            if user_stores.exists():
-                store = user_stores.first()
-        
-        # Store in thread-local storage and request
-        _thread_locals.store = store
-        request.store = store
-        
-        return None
-    
-    def get_domain_from_request(self, request):
-        """Extract domain from request"""
-        host = request.get_host()
-        if ':' in host:
-            host = host.split(':')[0]
-        
-        # Handle development cases
-        if host in ['localhost', '127.0.0.1', 'testserver']:
-            return request.GET.get('domain') or request.META.get('HTTP_X_DOMAIN')
-        
-        return host
-    
-    def get_store_by_domain(self, domain):
-        """Get store by domain with caching"""
-        if not domain:
+                    # فروشگاه با این دامنه یافت نشد
+                    logger.warning(f'Store not found for domain: {host}')
+                    
+                    # نمایش پیام خطا
+                    return HttpResponse(
+                        f'<h1>فروشگاه یافت نشد</h1>'
+                        f'<p>فروشگاهی با دامنه <strong>{host}</strong> یافت نشد.</p>'
+                        f'<p>لطفاً دامنه را بررسی کنید یا با مدیر تماس بگیرید.</p>',
+                        status=404,
+                        content_type='text/html; charset=utf-8'
+                    )
+                
+                except Store.MultipleObjectsReturned:
+                    # چندین فروشگاه با یک دامنه - مشکل در دیتابیس
+                    logger.error(f'Multiple stores found for domain: {host}')
+                    return HttpResponse(
+                        '<h1>خطا در سیستم</h1>'
+                        '<p>مشکل در پیکربندی فروشگاه. لطفاً با مدیر تماس بگیرید.</p>',
+                        status=500,
+                        content_type='text/html; charset=utf-8'
+                    )
+            
+            # اگر فروشگاه غیرفعال است
+            if not store.is_active:
+                return HttpResponse(
+                    f'<h1>فروشگاه غیرفعال</h1>'
+                    f'<p>فروشگاه <strong>{store.name}</strong> در حال حاضر غیرفعال است.</p>'
+                    f'<p>لطفاً بعداً تلاش کنید.</p>',
+                    status=503,
+                    content_type='text/html; charset=utf-8'
+                )
+            
+            # اگر فروشگاه تایید نشده است
+            if not store.is_approved:
+                return HttpResponse(
+                    f'<h1>فروشگاه در انتظار تایید</h1>'
+                    f'<p>فروشگاه <strong>{store.name}</strong> هنوز تایید نشده است.</p>'
+                    f'<p>لطفاً تا تایید مدیر پلتفرم صبر کنید.</p>',
+                    status=503,
+                    content_type='text/html; charset=utf-8'
+                )
+            
+            # اختصاص فروشگاه به درخواست
+            request.is_platform_request = False
+            request.store = store
+            request.store_domain = host
+            
+            # اطلاعات اضافی برای استفاده در ویوها
+            request.store_owner = store.owner
+            request.store_settings = {
+                'currency': store.currency,
+                'tax_rate': store.tax_rate,
+                'name': store.name,
+                'description': store.description,
+                'logo': store.logo.url if store.logo else None,
+                'email': store.email,
+                'phone': store.phone,
+                'address': store.address,
+            }
+            
             return None
             
-        cache_key = f'store_domain_{domain}'
-        store = cache.get(cache_key)
-        
-        if store is None:
-            try:
-                store = Store.objects.select_related('owner').get(
-                    domain=domain,
-                    is_active=True,
-                    is_approved=True
+        except Exception as e:
+            logger.error(f'Error in DomainBasedStoreMiddleware: {str(e)}')
+            return HttpResponse(
+                '<h1>خطا در سیستم</h1>'
+                '<p>مشکلی در پردازش درخواست رخ داده است.</p>',
+                status=500,
+                content_type='text/html; charset=utf-8'
+            )
+    
+    def process_response(self, request, response):
+        """
+        پردازش پاسخ و افزودن هدرهای مربوط به فروشگاه
+        """
+        try:
+            # افزودن هدر نام فروشگاه
+            if hasattr(request, 'store') and request.store:
+                response['X-Store-Name'] = request.store.name
+                response['X-Store-Domain'] = request.store.domain
+                response['X-Store-Currency'] = request.store.currency
+            
+            # افزودن هدر پلتفرم
+            if hasattr(request, 'is_platform_request') and request.is_platform_request:
+                response['X-Platform-Request'] = 'true'
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f'Error in process_response: {str(e)}')
+            return response
+
+
+class StoreSecurityMiddleware(MiddlewareMixin):
+    """
+    میدل‌ور امنیتی برای فروشگاه‌ها
+    """
+    
+    def process_request(self, request):
+        """
+        بررسی امنیت درخواست
+        """
+        try:
+            # بررسی IP مشکوک (می‌تواند از تنظیمات خوانده شود)
+            blocked_ips = getattr(settings, 'BLOCKED_IPS', [])
+            client_ip = self.get_client_ip(request)
+            
+            if client_ip in blocked_ips:
+                logger.warning(f'Blocked IP attempted access: {client_ip}')
+                return HttpResponse(
+                    '<h1>دسترسی مسدود</h1>'
+                    '<p>دسترسی شما به این سایت مسدود شده است.</p>',
+                    status=403,
+                    content_type='text/html; charset=utf-8'
                 )
-                cache.set(cache_key, store, 300)
-            except Store.DoesNotExist:
-                store = None
-        
-        return store
-
-
-class CORSMiddleware(MiddlewareMixin):
-    """
-    Custom CORS middleware that handles store-specific domains
-    """
-    
-    def process_response(self, request, response):
-        # Get current store
-        store = get_current_store(request)
-        
-        if store:
-            # Allow requests from the store's domain
-            origin = request.META.get('HTTP_ORIGIN')
-            if origin:
-                # Check if origin matches store domain
-                store_origins = [
-                    f'http://{store.domain}',
-                    f'https://{store.domain}',
-                ]
+            
+            # بررسی تعداد درخواست‌ها (Rate Limiting ساده)
+            if hasattr(request, 'store') and request.store:
+                rate_limit_key = f'rate_limit_{client_ip}_{request.store.domain}'
+                request_count = cache.get(rate_limit_key, 0)
                 
-                if origin in store_origins or origin.endswith(f'.{store.domain}'):
-                    response['Access-Control-Allow-Origin'] = origin
-                    response['Access-Control-Allow-Credentials'] = 'true'
-                    response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-                    response['Access-Control-Allow-Headers'] = 'Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Store-ID, X-Domain'
-        
-        # For development, allow localhost
-        if 'localhost' in request.get_host() or '127.0.0.1' in request.get_host():
-            response['Access-Control-Allow-Origin'] = '*'
-            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-            response['Access-Control-Allow-Headers'] = 'Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Store-ID, X-Domain'
-        
-        return response
-
-
-class SecurityMiddleware(MiddlewareMixin):
-    """
-    Security middleware for store isolation
-    """
-    
-    def process_request(self, request):
-        # Add security headers
-        store = get_current_store(request)
-        
-        if store and hasattr(request, 'user') and request.user.is_authenticated:
-            # Check if user has access to this store
-            if request.path.startswith('/admin/') and not request.user.is_superuser:
-                # Only store owners can access their store's admin
-                if not store.owner == request.user:
-                    raise Http404("Store not found")
-        
-        return None
-    
-    def process_response(self, request, response):
-        # Add security headers
-        response['X-Content-Type-Options'] = 'nosniff'
-        response['X-Frame-Options'] = 'DENY'
-        response['X-XSS-Protection'] = '1; mode=block'
-        
-        # Add CSP for store domains
-        store = get_current_store(request)
-        if store:
-            csp = f"default-src 'self' https://{store.domain} http://{store.domain}; " \
-                  f"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " \
-                  f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " \
-                  f"font-src 'self' https://fonts.gstatic.com; " \
-                  f"img-src 'self' data: https:; " \
-                  f"connect-src 'self' https://{store.domain} http://{store.domain}"
-            response['Content-Security-Policy'] = csp
-        
-        return response
-
-
-class LocalizationMiddleware(MiddlewareMixin):
-    """
-    Middleware to handle RTL/LTR and Farsi localization
-    """
-    
-    def process_request(self, request):
-        # Set default language to Farsi for store fronts
-        store = get_current_store(request)
-        
-        if store:
-            # Set language and timezone based on store settings
-            request.LANGUAGE_CODE = 'fa'  # Farsi
-            request.TEXT_DIRECTION = 'rtl'  # Right-to-left
-        
-        # For admin panel, keep English for platform admin
-        if request.path.startswith('/admin/') and request.user.is_authenticated:
-            if request.user.is_superuser:
-                request.LANGUAGE_CODE = 'en'
-                request.TEXT_DIRECTION = 'ltr'
-        
-        return None
-
-
-class PerformanceMiddleware(MiddlewareMixin):
-    """
-    Performance optimization middleware
-    """
-    
-    def process_request(self, request):
-        # Add query optimization hints
-        request._query_count = 0
-        return None
-    
-    def process_response(self, request, response):
-        # Add performance headers for debugging
-        if hasattr(request, '_query_count'):
-            response['X-DB-Queries'] = str(request._query_count)
-        
-        # Add caching headers for static content
-        if request.path.startswith('/static/') or request.path.startswith('/media/'):
-            response['Cache-Control'] = 'public, max-age=31536000'  # 1 year
-        
-        return response
-
-
-class RateLimitMiddleware(MiddlewareMixin):
-    """
-    Simple rate limiting middleware per store
-    """
-    
-    def process_request(self, request):
-        # Skip rate limiting for admin users
-        if request.user.is_authenticated and request.user.is_superuser:
+                max_requests = getattr(settings, 'MAX_REQUESTS_PER_MINUTE', 100)
+                
+                if request_count >= max_requests:
+                    logger.warning(f'Rate limit exceeded for IP: {client_ip}')
+                    return HttpResponse(
+                        '<h1>تعداد درخواست‌ها زیاد است</h1>'
+                        '<p>لطفاً چند دقیقه صبر کنید.</p>',
+                        status=429,
+                        content_type='text/html; charset=utf-8'
+                    )
+                
+                # افزایش شمارنده
+                cache.set(rate_limit_key, request_count + 1, 60)
+            
             return None
-        
-        # Get client IP
-        ip = self.get_client_ip(request)
-        store = get_current_store(request)
-        
-        # Create cache key
-        cache_key = f'rate_limit_{ip}_{store.id if store else "global"}'
-        
-        # Check current request count
-        current_requests = cache.get(cache_key, 0)
-        
-        # Rate limit: 100 requests per minute per IP per store
-        if current_requests >= 100:
-            from django.http import HttpResponse
-            return HttpResponse('Rate limit exceeded', status=429)
-        
-        # Increment counter
-        cache.set(cache_key, current_requests + 1, 60)  # 60 seconds
-        
-        return None
+            
+        except Exception as e:
+            logger.error(f'Error in StoreSecurityMiddleware: {str(e)}')
+            return None
     
     def get_client_ip(self, request):
-        """Get client IP address"""
+        """
+        دریافت IP کلاینت
+        """
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
+            ip = x_forwarded_for.split(',')[0]
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+class StoreAPIMiddleware(MiddlewareMixin):
+    """
+    میدل‌ور برای مدیریت API درخواست‌های فروشگاه
+    """
+    
+    def process_request(self, request):
+        """
+        پردازش درخواست‌های API
+        """
+        try:
+            # بررسی درخواست‌های API
+            if request.path.startswith('/api/'):
+                
+                # درخواست‌های مدیریت پلتفرم
+                platform_api_paths = [
+                    '/api/admin/',
+                    '/api/auth/',
+                    '/api/platform/',
+                ]
+                
+                is_platform_api = any(
+                    request.path.startswith(path) 
+                    for path in platform_api_paths
+                )
+                
+                if is_platform_api:
+                    request.is_platform_api = True
+                    return None
+                
+                # درخواست‌های مربوط به فروشگاه
+                if hasattr(request, 'store') and request.store:
+                    request.is_store_api = True
+                    
+                    # بررسی اینکه آیا کاربر مالک فروشگاه است
+                    if request.user.is_authenticated:
+                        request.is_store_owner = request.user == request.store.owner
+                    else:
+                        request.is_store_owner = False
+                
+                # افزودن هدرهای CORS برای API
+                if request.method == 'OPTIONS':
+                    response = HttpResponse()
+                    response['Access-Control-Allow-Origin'] = '*'
+                    response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                    response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                    return response
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f'Error in StoreAPIMiddleware: {str(e)}')
+            return None
+    
+    def process_response(self, request, response):
+        """
+        پردازش پاسخ API
+        """
+        try:
+            # افزودن هدرهای CORS
+            if request.path.startswith('/api/'):
+                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f'Error in process_response: {str(e)}')
+            return response
+
+
+class StoreMaintenanceMiddleware(MiddlewareMixin):
+    """
+    میدل‌ور برای حالت تعمیر فروشگاه
+    """
+    
+    def process_request(self, request):
+        """
+        بررسی حالت تعمیر
+        """
+        try:
+            # بررسی حالت تعمیر عمومی
+            if getattr(settings, 'MAINTENANCE_MODE', False):
+                # اجازه دسترسی به مدیران
+                if request.user.is_authenticated and request.user.is_superuser:
+                    return None
+                
+                return HttpResponse(
+                    '<h1>سایت در حال تعمیر</h1>'
+                    '<p>سایت در حال حاضر در حال تعمیر است. لطفاً بعداً تلاش کنید.</p>',
+                    status=503,
+                    content_type='text/html; charset=utf-8'
+                )
+            
+            # بررسی حالت تعمیر فروشگاه
+            if hasattr(request, 'store') and request.store:
+                store_maintenance = cache.get(f'maintenance_{request.store.id}', False)
+                
+                if store_maintenance:
+                    # اجازه دسترسی به مالک فروشگاه
+                    if request.user.is_authenticated and request.user == request.store.owner:
+                        return None
+                    
+                    return HttpResponse(
+                        f'<h1>فروشگاه در حال تعمیر</h1>'
+                        f'<p>فروشگاه <strong>{request.store.name}</strong> در حال حاضر در حال تعمیر است.</p>'
+                        f'<p>لطفاً بعداً تلاش کنید.</p>',
+                        status=503,
+                        content_type='text/html; charset=utf-8'
+                    )
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f'Error in StoreMaintenanceMiddleware: {str(e)}')
+            return None
