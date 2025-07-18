@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from ..models import Store, Category, Product, Media, Comment, Rating, Basket, Order, OrderItem
+from ..models import Store, Category, Product, ProductImage, Comment, Rating
+from ..storefront_models import Basket, Order, OrderItem
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -35,10 +36,10 @@ class CategorySerializer(serializers.ModelSerializer):
         return obj.products.count()
 
 
-class MediaSerializer(serializers.ModelSerializer):
+class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Media
-        fields = ['id', 'media_type', 'file']
+        model = ProductImage
+        fields = ['id', 'image', 'alt_text', 'is_primary', 'sort_order']
         read_only_fields = ['id']
 
 
@@ -47,7 +48,7 @@ class CommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'text', 'created_at']
+        fields = ['id', 'user', 'text', 'title', 'is_approved', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -62,14 +63,14 @@ class RatingSerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    media = MediaSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
     average_rating = serializers.SerializerMethodField()
     rating_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = ['id', 'title', 'description', 'price', 'stock', 'created_at', 
-                 'category', 'media', 'average_rating', 'rating_count']
+                 'category', 'images', 'average_rating', 'rating_count', 'is_featured']
         read_only_fields = ['id', 'created_at']
     
     def get_average_rating(self, obj):
@@ -87,22 +88,22 @@ class ProductDetailSerializer(ProductListSerializer):
     ratings = RatingSerializer(many=True, read_only=True)
     
     class Meta(ProductListSerializer.Meta):
-        fields = ProductListSerializer.Meta.fields + ['comments', 'ratings']
+        fields = ProductListSerializer.Meta.fields + ['comments', 'ratings', 'short_description', 'meta_title', 'meta_description']
 
 
 class ProductSerializer(serializers.ModelSerializer):
     """Basic product serializer for backward compatibility"""
-    media = MediaSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'title', 'description', 'price', 'stock', 'category', 'media']
+        fields = ['id', 'title', 'description', 'price', 'stock', 'category', 'images']
 
 
 class BasketSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
+    product_id = serializers.UUIDField(write_only=True)
     total_price = serializers.SerializerMethodField()
     
     class Meta:
@@ -111,36 +112,40 @@ class BasketSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
     
     def get_total_price(self, obj):
-        return obj.product.price * obj.quantity
+        return obj.total_price
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
+    total_price = serializers.SerializerMethodField()
     
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'price_at_order']
+        fields = ['id', 'product', 'quantity', 'price_at_order', 'total_price', 'product_title']
         read_only_fields = ['id']
+    
+    def get_total_price(self, obj):
+        return obj.total_price
 
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     store = StoreSerializer(read_only=True)
     user = UserSerializer(read_only=True)
-    total_amount = serializers.SerializerMethodField()
+    final_amount = serializers.SerializerMethodField()
     
     class Meta:
         model = Order
-        fields = ['id', 'user', 'store', 'created_at', 'is_paid', 'logistics_status', 
-                 'items', 'total_amount']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'order_number', 'user', 'store', 'created_at', 'status', 
+                 'payment_status', 'total_amount', 'final_amount', 'items']
+        read_only_fields = ['id', 'created_at', 'order_number']
     
-    def get_total_amount(self, obj):
-        return sum(item.quantity * item.price_at_order for item in obj.items.all())
+    def get_final_amount(self, obj):
+        return obj.final_amount
 
 
 class CreateOrderSerializer(serializers.Serializer):
-    store_id = serializers.IntegerField()
+    store_id = serializers.UUIDField()
     
     def validate_store_id(self, value):
         try:
