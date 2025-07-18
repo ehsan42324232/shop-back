@@ -79,23 +79,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shop_platform.wsgi.application'
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'shop_platform'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+# Database Configuration
+# Use PostgreSQL if USE_POSTGRESQL is set, otherwise default to SQLite
+if os.environ.get('USE_POSTGRESQL', 'False').lower() == 'true':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'shop_platform'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
-
-# Fallback to SQLite for development
-if os.environ.get('USE_SQLITE', 'False').lower() == 'true':
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+else:
+    # Default to SQLite for development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
 
 # Password validation
@@ -205,9 +208,17 @@ CORS_ALLOW_HEADERS = [
     'x-domain',
 ]
 
-# Cache settings
+# Cache settings - Use local memory cache by default
 CACHES = {
     'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'shop-platform-cache',
+    }
+}
+
+# Use Redis cache if available
+if os.environ.get('USE_REDIS_CACHE', 'False').lower() == 'true':
+    CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
         'OPTIONS': {
@@ -215,14 +226,6 @@ CACHES = {
         },
         'KEY_PREFIX': 'shop_platform',
         'TIMEOUT': 300,  # 5 minutes default
-    }
-}
-
-# Fallback to local memory cache if Redis is not available
-if os.environ.get('USE_LOCAL_CACHE', 'False').lower() == 'true':
-    CACHES['default'] = {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'shop-platform-cache',
     }
 
 # Email settings
