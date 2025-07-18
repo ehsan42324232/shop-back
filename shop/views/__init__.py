@@ -1,16 +1,22 @@
 from rest_framework import viewsets, permissions, status, generics
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from shop.models import Store, Category, Product, ProductImage, Comment, Rating
+from django.http import JsonResponse
+from django.utils import timezone
+import json
+
+from shop.models import Store, Category, Product, ProductImage, Comment, Rating, ProductAttribute, ProductAttributeValue
 from shop.storefront_models import Basket, Order, OrderItem
 from shop.serializers import (
     StoreSerializer, CategorySerializer, ProductListSerializer, ProductDetailSerializer,
     ProductImageSerializer, CommentSerializer, RatingSerializer, BasketSerializer,
     OrderSerializer, CreateOrderSerializer, UserSerializer, ProductSerializer
 )
+
 
 # ViewSets (these are the ones imported by urls.py)
 class StoreViewSet(viewsets.ModelViewSet):
@@ -183,6 +189,269 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Admin Views
+class AdminStoreListView(generics.ListAPIView):
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class AdminStoreDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+# Store Management Views  
+class StoreListCreateView(generics.ListCreateAPIView):
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class StoreDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+# Category Views
+class CategoryListCreateView(generics.ListCreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+# Product Views
+class ProductListCreateView(generics.ListCreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductListSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductDetailSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+# Product Images
+class ProductImageListCreateView(generics.ListCreateAPIView):
+    serializer_class = ProductImageSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        product_id = self.kwargs['product_id']
+        return ProductImage.objects.filter(product_id=product_id)
+
+
+# Product Comments and Ratings
+class ProductCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        product_id = self.kwargs['product_id']
+        return Comment.objects.filter(product_id=product_id, is_approved=True)
+
+
+class ProductRatingCreateView(generics.CreateAPIView):
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+# Attribute Views
+class AttributeListCreateView(generics.ListCreateAPIView):
+    queryset = ProductAttribute.objects.all()
+    serializer_class = ProductSerializer  # You'll need to create ProductAttributeSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class AttributeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ProductAttribute.objects.all()
+    serializer_class = ProductSerializer  # You'll need to create ProductAttributeSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+# Function-based views for specific endpoints
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def approve_store(request, store_id):
+    try:
+        store = get_object_or_404(Store, id=store_id)
+        store.is_approved = True
+        store.is_active = True
+        store.approved_at = timezone.now()
+        store.save()
+        return Response({'message': 'Store approved successfully'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def reject_store(request, store_id):
+    try:
+        store = get_object_or_404(Store, id=store_id)
+        store.is_approved = False
+        store.is_active = False
+        store.save()
+        return Response({'message': 'Store rejected successfully'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_store_profile(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = StoreSerializer(request.store)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([permissions.IsAuthenticated])
+def update_store_profile(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = StoreSerializer(request.store, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_store_settings(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({
+            'currency': request.store.currency,
+            'tax_rate': request.store.tax_rate,
+            'is_active': request.store.is_active,
+            'is_approved': request.store.is_approved,
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_store_analytics(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        from .utils import get_store_analytics
+        analytics = get_store_analytics(request.store)
+        return Response(analytics)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_store_info(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = StoreSerializer(request.store)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def search_products(request):
+    try:
+        if not hasattr(request, 'store') or not request.store:
+            return Response({'error': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        from .additional_views import ProductSearchView
+        view = ProductSearchView()
+        view.request = request
+        return view.get(request)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_category_products(request, category_id):
+    try:
+        category = get_object_or_404(Category, id=category_id)
+        products = category.products.filter(is_active=True)
+        serializer = ProductListSerializer(products, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_product_attributes(request, product_id):
+    try:
+        product = get_object_or_404(Product, id=product_id)
+        attributes = product.attribute_values.all()
+        data = [
+            {
+                'attribute_name': attr.attribute.name,
+                'value': attr.value
+            }
+            for attr in attributes
+        ]
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def update_product_stock(request, product_id):
+    try:
+        product = get_object_or_404(Product, id=product_id)
+        new_stock = request.data.get('stock')
+        
+        if new_stock is not None:
+            product.stock = new_stock
+            product.save()
+            return Response({'message': 'Stock updated successfully'})
+        
+        return Response({'error': 'Stock value required'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_store_products(request, store_id):
+    try:
+        store = get_object_or_404(Store, id=store_id)
+        products = store.products.filter(is_active=True)
+        serializer = ProductListSerializer(products, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Generic API Views (for backward compatibility)
