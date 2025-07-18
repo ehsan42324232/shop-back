@@ -332,5 +332,5 @@ class BulkImportLog(TimestampedModel):
         return f"Import {self.filename} - {self.status}"
 
 
-# Models for storefront (shopping cart, orders) will be in a separate app
-# since they're part of individual store functionality, not the platform
+# Import storefront models to make them available
+from .storefront_models import *
