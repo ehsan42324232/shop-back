@@ -13,6 +13,9 @@ DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# Platform Domain (for admin panel)
+PLATFORM_DOMAIN = os.environ.get('PLATFORM_DOMAIN', 'localhost')
+
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -48,12 +51,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'shop.middleware.MultiTenantMiddleware',
-    'shop.middleware.APITenantMiddleware',
-    'shop.middleware.SecurityMiddleware',
-    'shop.middleware.LocalizationMiddleware',
-    'shop.middleware.PerformanceMiddleware',
-    'shop.middleware.RateLimitMiddleware',
+    # Custom middleware for multi-store functionality
+    'shop.middleware.DomainBasedStoreMiddleware',
+    'shop.middleware.StoreSecurityMiddleware',
+    'shop.middleware.StoreAPIMiddleware',
+    'shop.middleware.StoreMaintenanceMiddleware',
 ]
 
 ROOT_URLCONF = 'shop_platform.urls'
@@ -325,7 +327,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# Custom settings for the platform
+# Multi-store platform settings
 PLATFORM_SETTINGS = {
     'STORE_APPROVAL_REQUIRED': True,
     'AUTO_APPROVE_STORES': DEBUG,  # Auto-approve in development
@@ -337,6 +339,11 @@ PLATFORM_SETTINGS = {
     'SUPPORTED_CURRENCIES': ['IRR', 'USD', 'EUR'],
     'DEFAULT_TAX_RATE': 0.09,  # 9% VAT
 }
+
+# Security settings for multi-store
+BLOCKED_IPS = []
+MAX_REQUESTS_PER_MINUTE = 100
+MAINTENANCE_MODE = False
 
 # Payment gateway settings
 PAYMENT_GATEWAYS = {
