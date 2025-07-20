@@ -1,5 +1,6 @@
 from django.urls import path, include
-from . import views, authentication, storefront_views, import_views
+from . import views, authentication, storefront_views, import_views, analytics_views
+from .chat_urls import chat_urlpatterns
 
 # API URLs
 urlpatterns = [
@@ -19,12 +20,20 @@ urlpatterns = [
     path('api/admin/stores/<uuid:store_id>/approve/', views.approve_store, name='approve_store'),
     path('api/admin/stores/<uuid:store_id>/reject/', views.reject_store, name='reject_store'),
     
+    # Platform analytics (admin only)
+    path('api/admin/analytics/', analytics_views.get_platform_analytics, name='platform_analytics'),
+    
     # ==================== Store Owner APIs ====================
     # Store management (for store owners)
     path('api/store/profile/', views.get_store_profile, name='store_profile'),
     path('api/store/update/', views.update_store_profile, name='update_store_profile'),
     path('api/store/settings/', views.get_store_settings, name='store_settings'),
-    path('api/store/analytics/', views.get_store_analytics, name='store_analytics'),
+    path('api/store/analytics/', analytics_views.get_store_analytics, name='store_analytics'),
+    
+    # Analytics and Reports
+    path('api/analytics/sales/', analytics_views.get_sales_report, name='sales_report'),
+    path('api/analytics/inventory/', analytics_views.get_inventory_report, name='inventory_report'),
+    path('api/analytics/products/<uuid:product_id>/', analytics_views.get_product_analytics, name='product_analytics'),
     
     # Categories
     path('api/categories/', views.CategoryListCreateView.as_view(), name='categories'),
@@ -93,11 +102,21 @@ urlpatterns = [
     path('stores/<uuid:store_id>/products/', views.get_store_products, name='store-products'),
 ]
 
+# Add live chat URLs
+urlpatterns += chat_urlpatterns
+
 # Add any additional URL patterns for other views if they exist
 try:
     from . import additional_views
     urlpatterns += [
         # Additional view patterns can be added here
     ]
+except ImportError:
+    pass
+
+# Add social content URLs
+try:
+    from .social_content_urls import urlpatterns as social_urls
+    urlpatterns += social_urls
 except ImportError:
     pass
