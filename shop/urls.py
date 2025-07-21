@@ -1,5 +1,6 @@
 from django.urls import path, include
 from . import views, authentication, storefront_views, import_views, analytics_views
+from . import search_views, order_views, comment_views, logistics_views
 from .chat_urls import chat_urlpatterns
 
 # API URLs
@@ -61,10 +62,50 @@ urlpatterns = [
     path('api/import/template/', import_views.download_sample_template, name='download_sample_template'),
     path('api/export/products/', import_views.export_products, name='export_products'),
     
+    # ==================== Advanced Search APIs ====================
+    path('api/search/', search_views.ProductSearchView.as_view(), name='product_search'),
+    path('api/search/suggestions/', search_views.search_suggestions, name='search_suggestions'),
+    path('api/search/popular/', search_views.popular_searches, name='popular_searches'),
+    path('api/search/log/', search_views.log_search, name='log_search'),
+    
+    # ==================== Order Management APIs ====================
+    path('api/orders/', order_views.OrderViewSet.as_view({'get': 'list', 'post': 'create'}), name='orders'),
+    path('api/orders/<int:pk>/', order_views.OrderViewSet.as_view({'get': 'retrieve', 'put': 'update'}), name='order_detail'),
+    path('api/orders/<int:pk>/update-status/', order_views.OrderViewSet.as_view({'post': 'update_status'}), name='update_order_status'),
+    path('api/orders/<int:pk>/cancel/', order_views.OrderViewSet.as_view({'post': 'cancel_order'}), name='cancel_order'),
+    path('api/orders/<int:pk>/tracking/', order_views.OrderViewSet.as_view({'get': 'tracking_info'}), name='order_tracking'),
+    path('api/orders/analytics/', order_views.order_analytics, name='order_analytics'),
+    path('api/orders/bulk-update/', order_views.bulk_update_orders, name='bulk_update_orders'),
+    path('api/orders/export/', order_views.export_orders, name='export_orders'),
+    
+    # ==================== Reviews and Comments APIs ====================
+    path('api/products/<uuid:product_id>/reviews/', comment_views.ProductReviewViewSet.as_view({'get': 'list', 'post': 'create'}), name='product_reviews'),
+    path('api/products/<uuid:product_id>/reviews/<int:pk>/', comment_views.ProductReviewViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='product_review_detail'),
+    path('api/products/<uuid:product_id>/reviews/<int:pk>/helpful/', comment_views.ProductReviewViewSet.as_view({'post': 'mark_helpful'}), name='mark_review_helpful'),
+    path('api/products/<uuid:product_id>/reviews/summary/', comment_views.ProductReviewViewSet.as_view({'get': 'summary'}), name='product_reviews_summary'),
+    path('api/products/<uuid:product_id>/reviews/stats/', comment_views.product_reviews_stats, name='product_reviews_stats'),
+    path('api/reviews/pending/', comment_views.pending_reviews, name='pending_reviews'),
+    path('api/reviews/<int:review_id>/moderate/', comment_views.moderate_review, name='moderate_review'),
+    path('api/reviews/bulk-moderate/', comment_views.bulk_moderate_reviews, name='bulk_moderate_reviews'),
+    
+    # ==================== Logistics and Shipping APIs ====================
+    path('api/delivery-methods/', logistics_views.DeliveryMethodViewSet.as_view({'get': 'list', 'post': 'create'}), name='delivery_methods'),
+    path('api/delivery-methods/<int:pk>/', logistics_views.DeliveryMethodViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='delivery_method_detail'),
+    path('api/delivery-methods/<int:pk>/calculate-cost/', logistics_views.DeliveryMethodViewSet.as_view({'post': 'calculate_cost'}), name='calculate_delivery_cost'),
+    path('api/delivery-methods/available/', logistics_views.available_delivery_methods, name='available_delivery_methods'),
+    
+    path('api/shipments/', logistics_views.ShipmentViewSet.as_view({'get': 'list'}), name='shipments'),
+    path('api/shipments/<int:pk>/', logistics_views.ShipmentViewSet.as_view({'get': 'retrieve'}), name='shipment_detail'),
+    path('api/shipments/<int:pk>/update-tracking/', logistics_views.ShipmentViewSet.as_view({'post': 'update_tracking'}), name='update_shipment_tracking'),
+    path('api/shipments/<int:pk>/track/', logistics_views.ShipmentViewSet.as_view({'get': 'track'}), name='track_shipment_detail'),
+    path('api/shipments/track/<str:tracking_number>/', logistics_views.track_shipment, name='track_shipment'),
+    path('api/shipments/create/<int:order_id>/', logistics_views.create_shipment, name='create_shipment'),
+    path('api/shipments/analytics/', logistics_views.logistics_analytics, name='logistics_analytics'),
+    path('api/shipments/bulk-update/', logistics_views.bulk_update_shipments, name='bulk_update_shipments'),
+    
     # ==================== Customer/Storefront APIs ====================
     # Public store info
     path('api/store/info/', views.get_store_info, name='store_info'),
-    path('api/search/', views.search_products, name='search_products'),
     
     # Shopping Cart
     path('api/basket/', storefront_views.get_basket, name='get_basket'),
@@ -73,10 +114,10 @@ urlpatterns = [
     path('api/basket/<int:item_id>/remove/', storefront_views.remove_from_basket, name='remove_from_basket'),
     path('api/basket/clear/', storefront_views.clear_basket, name='clear_basket'),
     
-    # Orders
-    path('api/orders/', storefront_views.get_orders, name='get_orders'),
-    path('api/orders/create/', storefront_views.create_order, name='create_order'),
-    path('api/orders/<uuid:order_id>/', storefront_views.get_order_detail, name='order_detail'),
+    # Orders (Customer view)
+    path('api/customer/orders/', storefront_views.get_orders, name='customer_get_orders'),
+    path('api/customer/orders/create/', storefront_views.create_order, name='customer_create_order'),
+    path('api/customer/orders/<uuid:order_id>/', storefront_views.get_order_detail, name='customer_order_detail'),
     
     # Customer Addresses
     path('api/addresses/', storefront_views.get_addresses, name='get_addresses'),
@@ -91,10 +132,6 @@ urlpatterns = [
     
     # Delivery Info
     path('api/delivery/', storefront_views.get_delivery_info, name='delivery_info'),
-    
-    # Comments and Ratings
-    path('api/products/<uuid:product_id>/comments/', views.ProductCommentListCreateView.as_view(), name='product_comments'),
-    path('api/products/<uuid:product_id>/ratings/', views.ProductRatingCreateView.as_view(), name='product_ratings'),
     
     # ==================== Legacy URLs (if needed) ====================
     path('stores/', views.StoreListCreateView.as_view(), name='store-list'),
