@@ -7,11 +7,13 @@ psycopg2-binary>=2.9
 Pillow>=10.0
 pandas>=2.0
 openpyxl>=3.1
-redis>=4.5
-django-redis>=5.2
-celery>=5.3
-gunicorn>=21.0
 whitenoise>=6.5
 python-decouple>=3.8
 requests>=2.31
 python-dateutil>=2.8
+
+# Optional packages (install separately if needed)
+# redis>=4.5
+# django-redis>=5.2
+# celery>=5.3
+# gunicorn>=21.0
