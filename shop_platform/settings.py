@@ -402,3 +402,7 @@ TENANT_SETTINGS = {
     'TENANT_CACHE_TIMEOUT': 300,  # 5 minutes
     'ENABLE_STORE_ISOLATION': True,
 }
+
+# Disable GIS functionality to avoid GDAL requirement
+# If you need GIS features in the future, install GDAL and uncomment the line below
+# INSTALLED_APPS += ['django.contrib.gis']
