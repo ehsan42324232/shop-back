@@ -393,6 +393,95 @@ def send_store_notification(store, message, notification_type='info'):
     )
 
 
+def send_sms_notification(phone_number, message, template_name=None):
+    """
+    Send SMS notification to phone number
+    This is a placeholder function that should be implemented with your SMS provider
+    """
+    try:
+        # Import SMS models if available
+        from .sms_models import SMSMessage, SMSTemplate
+        
+        # If template_name is provided, try to use template
+        if template_name:
+            try:
+                template = SMSTemplate.objects.get(name=template_name, is_active=True)
+                message = template.content.format(message=message)
+            except SMSTemplate.DoesNotExist:
+                pass  # Use the original message
+        
+        # Create SMS record
+        sms_record = SMSMessage.objects.create(
+            phone_number=phone_number,
+            message=message,
+            status='pending'
+        )
+        
+        # TODO: Integrate with actual SMS service provider
+        # Examples: Kavenegar, SMS.ir, Melipayamak, etc.
+        # For now, we'll just mark it as sent
+        
+        # Placeholder for actual SMS sending
+        # success = send_to_sms_provider(phone_number, message)
+        success = True  # Placeholder
+        
+        if success:
+            sms_record.status = 'sent'
+            sms_record.sent_at = datetime.now()
+        else:
+            sms_record.status = 'failed'
+            sms_record.error_message = 'SMS service not configured'
+        
+        sms_record.save()
+        
+        return {
+            'success': success,
+            'message': 'SMS sent successfully' if success else 'Failed to send SMS',
+            'sms_id': sms_record.id
+        }
+        
+    except ImportError:
+        # SMS models not available, just log the attempt
+        print(f"SMS to {phone_number}: {message}")
+        return {
+            'success': False,
+            'message': 'SMS service not configured',
+            'sms_id': None
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error sending SMS: {str(e)}',
+            'sms_id': None
+        }
+
+
+def send_email_notification(email, subject, message, template_name=None):
+    """
+    Send email notification
+    """
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return {
+            'success': True,
+            'message': 'Email sent successfully'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error sending email: {str(e)}'
+        }
+
+
 def export_products_to_csv(store, queryset=None):
     """
     Export store products to CSV format
