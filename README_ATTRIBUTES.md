@@ -103,7 +103,7 @@ DELETE /api/product-variants/{id}/                 # Delete variant
           <div class="attribute-values">
             <span *ngFor="let value of attr.values" 
                   class="value-tag"
-                  [style.backgroundColor]="value.color_code">
+                  [style.background-color]="value.color_code">
               {{ value.display_name }}
             </span>
           </div>
@@ -111,7 +111,7 @@ DELETE /api/product-variants/{id}/                 # Delete variant
       </div>
       
       <!-- Add New Attribute -->
-      <button (click)="showAddAttributeDialog()" class="btn-primary">
+      <button (click)="showAddAttributeModal = true">
         افزودن ویژگی جدید
       </button>
     </div>
@@ -122,14 +122,10 @@ export class AttributeManagementComponent {
   
   constructor(private attributeService: AttributeService) {}
   
-  ngOnInit() {
-    this.loadAttributes();
-  }
-  
   loadAttributes() {
-    this.attributeService.getAttributes().subscribe(
-      attributes => this.attributes = attributes
-    );
+    this.attributeService.getAttributes().subscribe(data => {
+      this.attributes = data;
+    });
   }
 }
 ```
@@ -142,27 +138,20 @@ export class AttributeManagementComponent {
   template: `
     <div class="variant-selector">
       <div *ngFor="let attribute of product.attributes" class="attribute-group">
-        <label>{{ attribute.name }}:</label>
+        <label>{{ attribute.name }}</label>
         <div class="attribute-options">
           <button *ngFor="let value of attribute.values"
-                  class="option-button"
                   [class.selected]="isSelected(attribute.id, value.id)"
                   (click)="selectValue(attribute.id, value.id)">
             <span *ngIf="value.color_code" 
                   class="color-swatch"
-                  [style.backgroundColor]="value.color_code"></span>
-            <img *ngIf="value.image" [src]="value.image" class="value-image">
+                  [style.background-color]="value.color_code"></span>
             {{ value.display_name }}
-            <span *ngIf="value.extra_cost > 0" class="extra-cost">
-              +{{ value.extra_cost | currency:'IRR' }}
-            </span>
           </button>
         </div>
       </div>
       
-      <div class="selected-variant" *ngIf="selectedVariant">
-        <h4>محصول انتخاب شده:</h4>
-        <p>SKU: {{ selectedVariant.sku }}</p>
+      <div class="variant-info" *ngIf="selectedVariant">
         <p>قیمت: {{ getVariantPrice() | currency:'IRR' }}</p>
         <p>موجودی: {{ selectedVariant.stock_quantity }}</p>
       </div>
@@ -171,109 +160,126 @@ export class AttributeManagementComponent {
 })
 export class VariantSelectorComponent {
   @Input() product: Product;
-  @Output() variantSelected = new EventEmitter<ProductVariant>();
-  
   selectedValues: Map<number, number> = new Map();
   selectedVariant: ProductVariant | null = null;
   
   selectValue(attributeId: number, valueId: number) {
     this.selectedValues.set(attributeId, valueId);
-    this.findMatchingVariant();
+    this.updateSelectedVariant();
   }
   
-  findMatchingVariant() {
-    // Find variant that matches selected attribute values
+  updateSelectedVariant() {
+    // Find variant that matches selected values
     this.selectedVariant = this.product.variants.find(variant => {
       return this.variantMatchesSelection(variant);
     });
-    
-    if (this.selectedVariant) {
-      this.variantSelected.emit(this.selectedVariant);
-    }
   }
 }
 ```
 
-## Usage Examples
+## Bulk Import with Attributes
 
-### Creating Attributes
+### CSV Format
 
-```python
-# Create a Color attribute
-color_attr = ProductAttribute.objects.create(
-    store=store,
-    name="رنگ",
-    attribute_type="color",
-    is_required=True,
-    is_variation=True
-)
-
-# Add color values
-red = ProductAttributeValue.objects.create(
-    attribute=color_attr,
-    value="red",
-    display_name="قرمز",
-    color_code="#FF0000"
-)
-
-blue = ProductAttributeValue.objects.create(
-    attribute=color_attr,
-    value="blue",
-    display_name="آبی",
-    color_code="#0000FF"
-)
+```csv
+name,description,price,color,size,stock_color_size
+تی‌شرت ساده,تی‌شرت پنبه‌ای,50000,قرمز,Large,10
+تی‌شرت ساده,تی‌شرت پنبه‌ای,50000,قرمز,Medium,15
+تی‌شرت ساده,تی‌شرت پنبه‌ای,50000,آبی,Large,8
 ```
 
-### Generating Variants
+### Import Processing
 
 ```python
-def generate_product_variants(product):
-    """Generate all possible variants for a product"""
-    attributes = product.attributes.all()
+def process_variant_import(file_data, store):
+    """Process CSV import with variant support"""
     
-    if not attributes:
-        return
-    
-    # Get all attribute value combinations
-    value_combinations = itertools.product(
-        *[attr.values.all() for attr in attributes]
-    )
-    
-    for combination in value_combinations:
-        # Create variant
-        variant = ProductVariant.objects.create(
-            product=product,
-            sku=f"{product.sku}-{'-'.join([v.value for v in combination])}"
+    for row in file_data:
+        # Get or create base product
+        product, created = Product.objects.get_or_create(
+            name=row['name'],
+            store=store,
+            defaults={
+                'description': row['description'],
+                'price': row['price']
+            }
         )
         
-        # Add attribute values
-        variant.attribute_values.set(combination)
+        # Process attributes
+        variant_values = []
+        for attr_name in ['color', 'size']:  # Dynamic based on CSV columns
+            if attr_name in row and row[attr_name]:
+                attribute = get_or_create_attribute(store, attr_name)
+                value = get_or_create_attribute_value(
+                    attribute, 
+                    row[attr_name]
+                )
+                variant_values.append(value)
         
-        # Calculate price adjustment
-        extra_cost = sum(v.extra_cost for v in combination)
-        variant.price_adjustment = extra_cost
-        variant.save()
+        # Create or update variant
+        if variant_values:
+            variant = create_or_update_variant(
+                product, 
+                variant_values, 
+                row
+            )
 ```
 
-### Filtering Products by Attributes
+## Advanced Features
+
+### Dynamic Pricing Rules
 
 ```python
-def filter_products_by_attributes(queryset, filters):
-    """Filter products by attribute values"""
-    for attr_name, values in filters.items():
-        queryset = queryset.filter(
-            variants__attribute_values__attribute__name=attr_name,
-            variants__attribute_values__value__in=values
-        ).distinct()
+class AttributePricingRule(models.Model):
+    """Rules for automatic pricing based on attribute combinations"""
+    store = models.ForeignKey(Store, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
     
-    return queryset
+    # Conditions
+    attribute_conditions = models.JSONField()  # {"color": ["red"], "size": ["large"]}
+    
+    # Pricing adjustments
+    price_adjustment_type = models.CharField(
+        max_length=20, 
+        choices=[('fixed', 'Fixed'), ('percentage', 'Percentage')]
+    )
+    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    is_active = models.BooleanField(default=True)
+```
 
-# Usage
-products = Product.objects.filter(store=store)
-filtered = filter_products_by_attributes(products, {
-    'رنگ': ['قرمز', 'آبی'],
-    'سایز': ['بزرگ', 'متوسط']
-})
+### Inventory Alerts
+
+```python
+def check_variant_stock_alerts(store):
+    """Check for low stock variants and send alerts"""
+    
+    low_stock_variants = ProductVariant.objects.filter(
+        product__store=store,
+        stock_quantity__lte=F('product__low_stock_threshold'),
+        is_active=True
+    )
+    
+    if low_stock_variants.exists():
+        send_low_stock_alert(store, low_stock_variants)
+```
+
+### SEO for Variants
+
+```python
+class VariantSEO(models.Model):
+    """SEO optimization for product variants"""
+    variant = models.OneToOneField(ProductVariant, on_delete=models.CASCADE)
+    meta_title = models.CharField(max_length=200, blank=True)
+    meta_description = models.TextField(blank=True)
+    url_slug = models.SlugField(max_length=200, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.url_slug:
+            # Generate SEO-friendly slug
+            variant_description = self.get_variant_description()
+            self.url_slug = slugify(f"{self.variant.product.name}-{variant_description}")
+        super().save(*args, **kwargs)
 ```
 
 ## Best Practices
@@ -282,94 +288,91 @@ filtered = filter_products_by_attributes(products, {
 
 - Group related attributes together
 - Use consistent naming conventions
-- Order attributes by importance
+- Define attributes at store level for reusability
 
 ### 2. Performance Optimization
 
-- Use database indexing for frequently queried attributes
-- Cache attribute combinations
-- Optimize variant generation for products with many attributes
+- Index frequently queried attribute combinations
+- Use select_related/prefetch_related for variant queries
+- Cache popular attribute combinations
 
 ### 3. User Experience
 
-- Show visual representations for color/pattern attributes
-- Provide clear pricing information for variants
-- Indicate stock availability for each variant
+- Show variant availability in real-time
+- Provide visual indicators for attributes (colors, images)
+- Implement smart filtering based on available combinations
 
 ### 4. Inventory Management
 
-- Track stock separately for each variant
-- Set up low stock alerts for variants
-- Provide bulk inventory update tools
+- Track stock at variant level
+- Implement automatic stock updates
+- Set up low stock alerts per variant
 
-## Migration Guide
+## Migration Strategy
 
 ### From Simple Products to Variants
 
-1. **Backup existing data**
-2. **Create attributes for existing product variations**
-3. **Generate variants from existing products**
-4. **Migrate inventory data to variants**
-5. **Update frontend to use variant selector**
-
 ```python
-# Migration script example
-def migrate_to_variants():
+def migrate_simple_to_variants():
+    """Migrate existing simple products to variant system"""
+    
     for product in Product.objects.filter(has_variants=False):
         # Create default variant
         default_variant = ProductVariant.objects.create(
             product=product,
-            sku=product.sku,
+            sku=f"{product.sku}-default",
             stock_quantity=product.stock_quantity,
             price_adjustment=0
         )
         
-        # Mark product as having variants
+        # Update product to use variants
         product.has_variants = True
         product.save()
 ```
 
-## API Response Examples
+## Testing
 
-### Product with Variants
+### Unit Tests
 
-```json
-{
-  "id": 1,
-  "name": "تی‌شرت کلاسیک",
-  "base_price": 50000,
-  "attributes": [
-    {
-      "id": 1,
-      "name": "رنگ",
-      "type": "color",
-      "values": [
-        {
-          "id": 1,
-          "value": "red",
-          "display_name": "قرمز",
-          "color_code": "#FF0000",
-          "extra_cost": 0
-        },
-        {
-          "id": 2,
-          "value": "blue",
-          "display_name": "آبی",
-          "color_code": "#0000FF",
-          "extra_cost": 5000
-        }
-      ]
-    }
-  ],
-  "variants": [
-    {
-      "id": 1,
-      "sku": "TSH-001-RED-L",
-      "attribute_values": [1, 3],
-      "price_adjustment": 0,
-      "stock_quantity": 10,
-      "final_price": 50000
-    }
-  ]
-}
+```python
+class ProductAttributeTestCase(TestCase):
+    def test_variant_price_calculation(self):
+        """Test variant price calculation with adjustments"""
+        # Create product with base price
+        product = Product.objects.create(
+            name="Test Product",
+            price=100000,
+            store=self.store
+        )
+        
+        # Create variant with price adjustment
+        variant = ProductVariant.objects.create(
+            product=product,
+            price_adjustment=10000
+        )
+        
+        self.assertEqual(variant.final_price, 110000)
+    
+    def test_variant_stock_tracking(self):
+        """Test variant-level stock tracking"""
+        # Test stock updates and availability
+        pass
 ```
+
+## Future Enhancements
+
+1. **AI-Powered Attribute Suggestions**
+   - Suggest attributes based on product category
+   - Auto-complete attribute values
+
+2. **Advanced Variant Rules**
+   - Conditional attribute display
+   - Complex pricing formulas
+
+3. **Multi-Store Attribute Sharing**
+   - Share common attributes across stores
+   - Standardized attribute definitions
+
+4. **Enhanced Analytics**
+   - Variant performance tracking
+   - Attribute popularity analysis
