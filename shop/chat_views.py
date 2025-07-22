@@ -9,10 +9,23 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 import json
 import logging
+
+# Temporarily disable channels for basic functionality
+try:
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    HAS_CHANNELS = True
+except ImportError:
+    # Fallback when channels is not installed
+    def get_channel_layer():
+        return None
+    def async_to_sync(func):
+        def wrapper(*args, **kwargs):
+            return None
+        return wrapper
+    HAS_CHANNELS = False
 
 from .chat_models import SupportAgent, ChatSession, ChatMessage, ChatNotification, SupportSettings
 from .chat_serializers import (
@@ -156,8 +169,9 @@ def send_message(request):
         session.updated_at = timezone.now()
         session.save()
         
-        # Send real-time notification via WebSocket
-        send_realtime_message(session, message)
+        # Send real-time notification via WebSocket (if channels available)
+        if HAS_CHANNELS:
+            send_realtime_message(session, message)
         
         # Send push notification to other party
         if session.customer == request.user and session.agent:
@@ -298,8 +312,9 @@ def assign_waiting_chats(agent):
                 body=f'{agent.user.get_full_name()} اکنون آماده کمک به شما است'
             )
             
-            # Send real-time update
-            send_realtime_session_update(session)
+            # Send real-time update (if channels available)
+            if HAS_CHANNELS:
+                send_realtime_session_update(session)
 
 
 def create_system_message(session, content):
@@ -330,11 +345,10 @@ def send_chat_notification(recipient, session, notification_type, title, body, m
             body=body
         )
         
-        # Send browser push notification
-        send_browser_push_notification(notification)
-        
-        # Send real-time WebSocket notification
-        send_realtime_notification(notification)
+        # Send browser push notification (if channels available)
+        if HAS_CHANNELS:
+            send_browser_push_notification(notification)
+            send_realtime_notification(notification)
         
         return notification
         
@@ -345,25 +359,25 @@ def send_chat_notification(recipient, session, notification_type, title, body, m
 def send_browser_push_notification(notification):
     """Send browser push notification"""
     try:
-        # This would integrate with a push notification service like FCM
-        # For now, we'll send via WebSocket
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{notification.recipient.id}",
-                {
-                    'type': 'push_notification',
-                    'notification': {
-                        'title': notification.title,
-                        'body': notification.body,
-                        'icon': '/static/icons/chat-icon.png',
-                        'badge': '/static/icons/badge.png',
-                        'data': {
-                            'session_id': str(notification.session.id) if notification.session else None,
-                            'type': notification.notification_type
-                        }
+        if not HAS_CHANNELS or not channel_layer:
+            return
+            
+        async_to_sync(channel_layer.group_send)(
+            f"user_{notification.recipient.id}",
+            {
+                'type': 'push_notification',
+                'notification': {
+                    'title': notification.title,
+                    'body': notification.body,
+                    'icon': '/static/icons/chat-icon.png',
+                    'badge': '/static/icons/badge.png',
+                    'data': {
+                        'session_id': str(notification.session.id) if notification.session else None,
+                        'type': notification.notification_type
                     }
                 }
-            )
+            }
+        )
         
         notification.is_sent = True
         notification.sent_at = timezone.now()
@@ -376,16 +390,17 @@ def send_browser_push_notification(notification):
 def send_realtime_message(session, message):
     """Send real-time message via WebSocket"""
     try:
-        if channel_layer:
-            # Send to session group
-            async_to_sync(channel_layer.group_send)(
-                f"chat_{session.id}",
-                {
-                    'type': 'chat_message',
-                    'message': ChatMessageSerializer(message).data
-                }
-            )
+        if not HAS_CHANNELS or not channel_layer:
+            return
             
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{session.id}",
+            {
+                'type': 'chat_message',
+                'message': ChatMessageSerializer(message).data
+            }
+        )
+        
     except Exception as e:
         logger.error(f"Error sending real-time message: {e}")
 
@@ -393,15 +408,17 @@ def send_realtime_message(session, message):
 def send_realtime_session_update(session):
     """Send real-time session update"""
     try:
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                f"chat_{session.id}",
-                {
-                    'type': 'session_update',
-                    'session': ChatSessionSerializer(session).data
-                }
-            )
+        if not HAS_CHANNELS or not channel_layer:
+            return
             
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{session.id}",
+            {
+                'type': 'session_update',
+                'session': ChatSessionSerializer(session).data
+            }
+        )
+        
     except Exception as e:
         logger.error(f"Error sending real-time session update: {e}")
 
@@ -409,15 +426,17 @@ def send_realtime_session_update(session):
 def send_realtime_notification(notification):
     """Send real-time notification to user"""
     try:
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{notification.recipient.id}",
-                {
-                    'type': 'chat_notification',
-                    'notification': ChatNotificationSerializer(notification).data
-                }
-            )
+        if not HAS_CHANNELS or not channel_layer:
+            return
             
+        async_to_sync(channel_layer.group_send)(
+            f"user_{notification.recipient.id}",
+            {
+                'type': 'chat_notification',
+                'notification': ChatNotificationSerializer(notification).data
+            }
+        )
+        
     except Exception as e:
         logger.error(f"Error sending real-time notification: {e}")
 
@@ -473,8 +492,9 @@ def register_push_token(request):
         
         # Store token in user profile or separate model
         # This is a simplified version - in production you'd have a proper token model
-        request.user.profile.push_token = token
-        request.user.profile.save()
+        if hasattr(request.user, 'profile'):
+            request.user.profile.push_token = token
+            request.user.profile.save()
         
         return Response({'message': 'توکن با موفقیت ثبت شد'})
         
@@ -493,6 +513,7 @@ def get_chat_analytics(request):
             return Response({'error': 'شما مجاز نیستید'}, status=403)
         
         from datetime import datetime, timedelta
+        from django.db import models
         
         now = timezone.now()
         today = now.date()
