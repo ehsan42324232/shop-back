@@ -4,8 +4,9 @@ from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from django.contrib.gis.measure import Distance
-from django.contrib.gis.geos import Point
+# Removed GIS imports to avoid GDAL dependency
+# from django.contrib.gis.measure import Distance
+# from django.contrib.gis.geos import Point
 import requests
 import json
 
@@ -269,7 +270,7 @@ def available_delivery_methods(request):
     if not store:
         return Response({'error': 'Store not found'}, status=404)
 
-    # Get customer location
+    # Get customer location (simplified without GIS)
     latitude = request.GET.get('lat')
     longitude = request.GET.get('lng')
     address_id = request.GET.get('address_id')
@@ -281,12 +282,12 @@ def available_delivery_methods(request):
                 id=address_id,
                 customer=request.user
             )
-            customer_location = Point(address.longitude, address.latitude) if address.longitude else None
+            customer_location = (address.latitude, address.longitude) if address.longitude else None
         except CustomerAddress.DoesNotExist:
             pass
     elif latitude and longitude:
         try:
-            customer_location = Point(float(longitude), float(latitude))
+            customer_location = (float(latitude), float(longitude))
         except (ValueError, TypeError):
             pass
 
@@ -297,17 +298,20 @@ def available_delivery_methods(request):
     )
 
     # Filter by available zones if location provided
+    # Note: Without GIS, we'll use a simplified distance calculation
     if customer_location:
         available_zones = DeliveryZone.objects.filter(
             store=store,
             is_active=True
         )
         
-        # Find zones that contain the customer location
+        # Find zones that contain the customer location (simplified)
         valid_zones = []
         for zone in available_zones:
-            if zone.covers_location(customer_location):
-                valid_zones.append(zone.id)
+            # Simple distance check instead of GIS
+            if hasattr(zone, 'covers_location_simple'):
+                if zone.covers_location_simple(customer_location[0], customer_location[1]):
+                    valid_zones.append(zone.id)
         
         if valid_zones:
             delivery_methods = delivery_methods.filter(
