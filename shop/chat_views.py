@@ -30,7 +30,8 @@ except ImportError:
 from .chat_models import SupportAgent, ChatSession, ChatMessage, ChatNotification, SupportSettings
 from .chat_serializers import (
     ChatSessionSerializer, ChatMessageSerializer, 
-    SupportAgentSerializer, ChatNotificationSerializer
+    SupportAgentSerializer, ChatNotificationSerializer,
+    ChatSessionRatingSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,102 @@ def start_chat_session(request):
     except Exception as e:
         logger.error(f"Error starting chat session: {e}")
         return Response({'error': 'خطا در شروع چت'}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def close_chat_session(request, session_id):
+    """Close a chat session"""
+    try:
+        session = ChatSession.objects.get(id=session_id)
+        
+        # Check if user can close this session
+        if not (session.customer == request.user or 
+                (hasattr(request.user, 'support_agent') and session.agent and session.agent.user == request.user)):
+            return Response({'error': 'شما مجاز به بستن این چت نیستید'}, status=403)
+        
+        # Close the session
+        session.close_session()
+        
+        # Send notification
+        if session.customer == request.user:
+            # Customer closed the chat
+            if session.agent:
+                send_chat_notification(
+                    recipient=session.agent.user,
+                    session=session,
+                    notification_type='chat_closed',
+                    title='مشتری چت را بست',
+                    body=f'مشتری {session.customer_name} چت را بست'
+                )
+        else:
+            # Agent closed the chat
+            send_chat_notification(
+                recipient=session.customer,
+                session=session,
+                notification_type='chat_closed',
+                title='چت بسته شد',
+                body='پشتیبان چت را بست'
+            )
+        
+        # Send real-time update
+        if HAS_CHANNELS:
+            send_realtime_session_update(session)
+        
+        return Response({
+            'message': 'چت با موفقیت بسته شد',
+            'session': ChatSessionSerializer(session).data
+        })
+        
+    except ChatSession.DoesNotExist:
+        return Response({'error': 'جلسه چت یافت نشد'}, status=404)
+    except Exception as e:
+        logger.error(f"Error closing chat session: {e}")
+        return Response({'error': 'خطا در بستن چت'}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def rate_chat_session(request, session_id):
+    """Rate a chat session"""
+    try:
+        session = ChatSession.objects.get(id=session_id)
+        
+        # Only customer can rate
+        if session.customer != request.user:
+            return Response({'error': 'فقط مشتری می‌تواند چت را امتیازدهی کند'}, status=403)
+        
+        # Session must be closed
+        if session.status != 'closed':
+            return Response({'error': 'فقط چت‌های بسته شده را می‌توان امتیازدهی کرد'}, status=400)
+        
+        serializer = ChatSessionRatingSerializer(session, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            
+            # Send notification to agent if rated
+            if session.agent and request.data.get('customer_rating'):
+                rating = request.data.get('customer_rating')
+                send_chat_notification(
+                    recipient=session.agent.user,
+                    session=session,
+                    notification_type='chat_rated',
+                    title='امتیاز جدید دریافت شد',
+                    body=f'امتیاز {rating} از 5 برای چت با {session.customer_name}'
+                )
+            
+            return Response({
+                'message': 'امتیاز با موفقیت ثبت شد',
+                'session': ChatSessionSerializer(session).data
+            })
+        else:
+            return Response(serializer.errors, status=400)
+        
+    except ChatSession.DoesNotExist:
+        return Response({'error': 'جلسه چت یافت نشد'}, status=404)
+    except Exception as e:
+        logger.error(f"Error rating chat session: {e}")
+        return Response({'error': 'خطا در ثبت امتیاز'}, status=500)
 
 
 @api_view(['POST'])
