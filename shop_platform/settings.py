@@ -10,7 +10,11 @@ except ImportError:
     def config(key, default=None, cast=str):
         value = os.environ.get(key, default)
         if cast == bool:
-            return value.lower() in ('true', '1', 'yes', 'on')
+            if value is None:
+                return default
+            # More robust boolean conversion
+            value_str = str(value).lower().strip()
+            return value_str in ('true', '1', 'yes', 'on')
         return cast(value) if value is not None else default
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -91,7 +95,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'shop_platform.wsgi.application'
 
 # Database Configuration
-if config('USE_POSTGRESQL', default=False, cast=bool):
+# More robust PostgreSQL configuration
+USE_POSTGRESQL = config('USE_POSTGRESQL', default='True', cast=str).lower().strip()
+if USE_POSTGRESQL in ('true', '1', 'yes', 'on'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -100,6 +106,9 @@ if config('USE_POSTGRESQL', default=False, cast=bool):
             'PASSWORD': config('DB_PASSWORD', default=''),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='5432'),
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
         }
     }
 else:
@@ -227,7 +236,7 @@ CACHES = {
 }
 
 # Email settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='localhost')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
