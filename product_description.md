@@ -11,8 +11,8 @@ Mall is a comprehensive e-commerce platform designed specifically for the Irania
 - Store owners can log into the platform website to manage their stores
 - Products become saleable on their individual websites
 - Django admin panel for creating stores, building accounts and managing users
-- Manual product creation or bulk upload via Excel
-- Individual users can create custom products manually or through Excel import
+- Manual product creation
+- Individual users can create custom products manually
 
 ### Product Structure & Attributes
 - **Product Class:** Root class with price attribute and image/video lists
