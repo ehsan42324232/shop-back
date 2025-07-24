@@ -17,6 +17,7 @@ Mall is a comprehensive e-commerce platform designed specifically for the Irania
 ### Product Structure & Attributes
 - **Product Class:** Root class with price attribute and image/video lists
 - **Tree Levels:** Flexible hierarchy structure
+- **Object-Oriented Design:** The product structure follows object-oriented inheritance principles where product instances are actually object instances of the leaf subclasses
 - **Categorization:** Level 1 child attributes can be marked as "categorize by this" to act as subclasses
 - **Example:** Clothing as product subclass with:
   - Sex attribute (categorizer) - enables male/female categorization
