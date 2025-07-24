@@ -14,7 +14,7 @@ from django.db.models import Q, Count, F, Avg
 import json
 import logging
 
-from .models import Store
+from .models import Store, Product
 from .realtime_chat_models import (
     ChatRoom, RealtimeChatMessage, ChatAgent, RealtimeChatSession, 
     RealtimeChatNotification, ChatTemplate, ChatSettings
@@ -188,7 +188,7 @@ def get_chat_messages(request, room_id):
                 'attachment_name': message.attachment_name,
                 'product': {
                     'id': message.product.id,
-                    'name': message.product.name,
+                    'name': message.product.title,
                     'image': message.product.images.first().image.url if message.product and message.product.images.exists() else None
                 } if message.product else None,
                 'is_read': message.is_read,
@@ -263,7 +263,6 @@ def send_message(request, room_id):
         # Handle product reference
         if product_id:
             try:
-                from .mall_product_instances import Product
                 product = Product.objects.get(id=product_id)
                 message.product = product
                 message.save()
