@@ -5,7 +5,7 @@ Mall Platform - Chat URL Configuration
 from django.urls import path
 from . import realtime_chat_views
 
-urlpatterns = [
+chat_urlpatterns = [
     # Chat rooms
     path('chat/create/', realtime_chat_views.create_chat_room, name='create_chat_room'),
     path('chat/rooms/', realtime_chat_views.get_chat_rooms, name='get_chat_rooms'),
@@ -17,3 +17,6 @@ urlpatterns = [
     # Templates
     path('chat/templates/', realtime_chat_views.get_chat_templates, name='get_chat_templates'),
 ]
+
+# Keep urlpatterns for compatibility
+urlpatterns = chat_urlpatterns
