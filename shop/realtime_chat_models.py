@@ -52,9 +52,8 @@ class ChatRoom(models.Model):
     def get_unread_count(self, user):
         """Get unread message count for user"""
         return self.messages.filter(
-            is_read=False,
-            sender__ne=user
-        ).count()
+            is_read=False
+        ).exclude(sender=user).count()
 
 
 class RealtimeChatMessage(models.Model):
@@ -78,8 +77,8 @@ class RealtimeChatMessage(models.Model):
     attachment = models.FileField(upload_to='chat_files/', null=True, blank=True)
     attachment_name = models.CharField(max_length=255, blank=True)
     
-    # Product reference
-    product = models.ForeignKey('ProductInstance', on_delete=models.SET_NULL, null=True, blank=True)
+    # Product reference - Fixed to use the correct Product model
+    product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=True)
     
     # Status
     is_read = models.BooleanField(default=False)
@@ -191,10 +190,12 @@ class RealtimeChatNotification(models.Model):
 
 class ChatTemplate(models.Model):
     """Quick response templates"""
-    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='chat_templates')
-    name = models.CharField(max_length=100, verbose_name='نام قالب')
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='chat_templates', null=True, blank=True)
+    title = models.CharField(max_length=100, verbose_name='عنوان قالب')
     content = models.TextField(verbose_name='محتوا')
     category = models.CharField(max_length=50, verbose_name='دسته‌بندی')
+    shortcut = models.CharField(max_length=20, blank=True, verbose_name='میانبر')
+    order = models.IntegerField(default=0, verbose_name='ترتیب')
     
     is_active = models.BooleanField(default=True)
     usage_count = models.IntegerField(default=0)
@@ -204,10 +205,11 @@ class ChatTemplate(models.Model):
     class Meta:
         verbose_name = 'قالب پاسخ سریع'
         verbose_name_plural = 'قالب‌های پاسخ سریع'
+        ordering = ['category', 'order', 'title']
         db_table = 'chat_template'
     
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class ChatSettings(models.Model):
