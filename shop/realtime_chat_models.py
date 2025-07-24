@@ -44,6 +44,7 @@ class ChatRoom(models.Model):
         verbose_name = 'اتاق گفتگو'
         verbose_name_plural = 'اتاق‌های گفتگو'
         ordering = ['-updated_at']
+        db_table = 'realtime_chat_room'
     
     def __str__(self):
         return f"{self.store.name} - {self.customer.get_full_name()}"
@@ -56,8 +57,8 @@ class ChatRoom(models.Model):
         ).count()
 
 
-class ChatMessage(models.Model):
-    """Individual chat message"""
+class RealtimeChatMessage(models.Model):
+    """Individual realtime chat message - renamed to avoid conflict"""
     MESSAGE_TYPES = [
         ('text', 'متن'),
         ('image', 'تصویر'),
@@ -90,9 +91,10 @@ class ChatMessage(models.Model):
     read_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        verbose_name = 'پیام گفتگو'
-        verbose_name_plural = 'پیام‌های گفتگو'
+        verbose_name = 'پیام گفتگوی لحظه‌ای'
+        verbose_name_plural = 'پیام‌های گفتگوی لحظه‌ای'
         ordering = ['created_at']
+        db_table = 'realtime_chat_message'
     
     def __str__(self):
         return f"{self.sender.get_full_name()}: {self.content[:50]}"
@@ -129,6 +131,7 @@ class ChatAgent(models.Model):
     class Meta:
         verbose_name = 'مشاور گفتگو'
         verbose_name_plural = 'مشاوران گفتگو'
+        db_table = 'realtime_chat_agent'
     
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.store.name}"
@@ -138,8 +141,8 @@ class ChatAgent(models.Model):
         return self.is_online and self.current_chat_count < self.max_concurrent_chats
 
 
-class ChatSession(models.Model):
-    """Chat session tracking"""
+class RealtimeChatSession(models.Model):
+    """Realtime chat session tracking - renamed to avoid conflicts"""
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='sessions')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     
@@ -152,12 +155,13 @@ class ChatSession(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     
     class Meta:
-        verbose_name = 'جلسه گفتگو'
-        verbose_name_plural = 'جلسات گفتگو'
+        verbose_name = 'جلسه گفتگوی لحظه‌ای'
+        verbose_name_plural = 'جلسات گفتگوی لحظه‌ای'
+        db_table = 'realtime_chat_session'
 
 
-class ChatNotification(models.Model):
-    """Chat notifications"""
+class RealtimeChatNotification(models.Model):
+    """Realtime chat notifications - renamed to avoid conflicts"""
     NOTIFICATION_TYPES = [
         ('new_message', 'پیام جدید'),
         ('agent_assigned', 'اختصاص مشاور'),
@@ -165,8 +169,8 @@ class ChatNotification(models.Model):
         ('customer_waiting', 'انتظار مشتری')
     ]
     
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_notifications')
-    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='notifications')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='realtime_chat_notifications')
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='realtime_notifications')
     
     notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES)
     title = models.CharField(max_length=200)
@@ -179,9 +183,10 @@ class ChatNotification(models.Model):
     read_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        verbose_name = 'اعلان گفتگو'
-        verbose_name_plural = 'اعلانات گفتگو'
+        verbose_name = 'اعلان گفتگوی لحظه‌ای'
+        verbose_name_plural = 'اعلانات گفتگوی لحظه‌ای'
         ordering = ['-created_at']
+        db_table = 'realtime_chat_notification'
 
 
 class ChatTemplate(models.Model):
@@ -199,6 +204,7 @@ class ChatTemplate(models.Model):
     class Meta:
         verbose_name = 'قالب پاسخ سریع'
         verbose_name_plural = 'قالب‌های پاسخ سریع'
+        db_table = 'chat_template'
     
     def __str__(self):
         return self.name
@@ -234,3 +240,4 @@ class ChatSettings(models.Model):
     class Meta:
         verbose_name = 'تنظیمات گفتگو'
         verbose_name_plural = 'تنظیمات گفتگو'
+        db_table = 'chat_settings'
