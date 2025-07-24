@@ -352,6 +352,50 @@ def close_chat(request, room_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_chat_templates(request):
+    """Get chat templates for quick responses"""
+    try:
+        # Get templates for the user's store (if they are an agent)
+        if hasattr(request.user, 'chat_agent'):
+            store = request.user.chat_agent.store
+            templates = ChatTemplate.objects.filter(
+                store=store,
+                is_active=True
+            ).order_by('category', 'order')
+        else:
+            # For customers, return general templates or empty list
+            templates = ChatTemplate.objects.filter(
+                store__isnull=True,  # General templates
+                is_active=True
+            ).order_by('category', 'order')
+        
+        template_data = []
+        for template in templates:
+            template_data.append({
+                'id': str(template.id),
+                'title': template.title,
+                'content': template.content,
+                'category': template.category,
+                'shortcut': template.shortcut,
+                'order': template.order,
+                'created_at': template.created_at
+            })
+        
+        return Response({
+            'success': True,
+            'templates': template_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Get chat templates error: {e}")
+        return Response({
+            'success': False,
+            'message': 'خطا در دریافت قالب‌ها'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 def assign_available_agent(store):
     """Assign available agent to chat"""
     try:
