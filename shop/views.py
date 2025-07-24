@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q, Count, Avg, F
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 import pandas as pd
 import json
 from datetime import datetime
@@ -599,3 +600,20 @@ class BulkImportLogViewSet(viewsets.ReadOnlyModelViewSet):
         if store:
             return BulkImportLog.objects.filter(store=store)
         return BulkImportLog.objects.none()
+
+
+# Error Handlers
+def handler404(request, exception):
+    """Custom 404 error handler"""
+    return JsonResponse({
+        'error': 'صفحه مورد نظر یافت نشد',
+        'status_code': 404
+    }, status=404)
+
+
+def handler500(request):
+    """Custom 500 error handler"""
+    return JsonResponse({
+        'error': 'خطای داخلی سرور رخ داده است',
+        'status_code': 500
+    }, status=500)
