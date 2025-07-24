@@ -10,14 +10,14 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Avg
 import json
 import logging
 
 from .models import Store
 from .realtime_chat_models import (
-    ChatRoom, ChatMessage, ChatAgent, ChatSession, 
-    ChatNotification, ChatTemplate, ChatSettings
+    ChatRoom, RealtimeChatMessage, ChatAgent, RealtimeChatSession, 
+    RealtimeChatNotification, ChatTemplate, ChatSettings
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def create_chat_room(request):
         # Send welcome message
         welcome_msg = store.chat_settings.welcome_message if hasattr(store, 'chat_settings') else 'سلام! چطور می‌تونم کمکتون کنم؟'
         
-        ChatMessage.objects.create(
+        RealtimeChatMessage.objects.create(
             room=room,
             sender=request.user,  # System message
             message_type='system',
@@ -72,7 +72,7 @@ def create_chat_room(request):
             room.save()
             
             # Create notification for agent
-            ChatNotification.objects.create(
+            RealtimeChatNotification.objects.create(
                 recipient=agent.user,
                 room=room,
                 notification_type='customer_waiting',
@@ -201,7 +201,7 @@ def get_chat_messages(request, room_id):
             message.mark_as_read(request.user)
         
         # Update session
-        session, created = ChatSession.objects.get_or_create(
+        session, created = RealtimeChatSession.objects.get_or_create(
             room=room,
             user=request.user,
             is_active=True
@@ -253,7 +253,7 @@ def send_message(request, room_id):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Create message
-        message = ChatMessage.objects.create(
+        message = RealtimeChatMessage.objects.create(
             room=room,
             sender=request.user,
             message_type=message_type,
@@ -262,12 +262,12 @@ def send_message(request, room_id):
         
         # Handle product reference
         if product_id:
-            from .models import ProductInstance
             try:
-                product = ProductInstance.objects.get(id=product_id)
+                from .mall_product_instances import Product
+                product = Product.objects.get(id=product_id)
                 message.product = product
                 message.save()
-            except ProductInstance.DoesNotExist:
+            except Product.DoesNotExist:
                 pass
         
         # Handle file upload
@@ -285,7 +285,7 @@ def send_message(request, room_id):
         # Create notification for recipient
         recipient = room.agent if request.user == room.customer else room.customer
         if recipient:
-            ChatNotification.objects.create(
+            RealtimeChatNotification.objects.create(
                 recipient=recipient,
                 room=room,
                 notification_type='new_message',
@@ -326,7 +326,7 @@ def close_chat(request, room_id):
         room.save()
         
         # Add system message
-        ChatMessage.objects.create(
+        RealtimeChatMessage.objects.create(
             room=room,
             sender=request.user,
             message_type='system',
@@ -352,46 +352,6 @@ def close_chat(request, room_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_chat_templates(request):
-    """Get quick response templates"""
-    try:
-        # Get user's store (for agents)
-        if hasattr(request.user, 'chat_agent'):
-            store = request.user.chat_agent.store
-            templates = ChatTemplate.objects.filter(
-                store=store,
-                is_active=True
-            ).order_by('category', 'name')
-            
-            template_data = []
-            for template in templates:
-                template_data.append({
-                    'id': template.id,
-                    'name': template.name,
-                    'content': template.content,
-                    'category': template.category
-                })
-            
-            return Response({
-                'success': True,
-                'templates': template_data
-            })
-        else:
-            return Response({
-                'success': False,
-                'message': 'دسترسی غیرمجاز'
-            }, status=status.HTTP_403_FORBIDDEN)
-        
-    except Exception as e:
-        logger.error(f"Get chat templates error: {e}")
-        return Response({
-            'success': False,
-            'message': 'خطا در دریافت قالب‌ها'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 def assign_available_agent(store):
     """Assign available agent to chat"""
     try:
@@ -402,7 +362,7 @@ def assign_available_agent(store):
         ).annotate(
             active_chats=Count('user__agent_chats', filter=Q(user__agent_chats__status='active'))
         ).filter(
-            active_chats__lt=models.F('max_concurrent_chats')
+            active_chats__lt=F('max_concurrent_chats')
         ).first()
         
         if agent:
@@ -442,7 +402,7 @@ def rate_chat(request, room_id):
                 customer_satisfaction__isnull=False
             )
             avg_rating = rated_chats.aggregate(
-                avg=models.Avg('customer_satisfaction')
+                avg=Avg('customer_satisfaction')
             )['avg']
             agent.customer_rating = avg_rating or 0
             agent.save()
