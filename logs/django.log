@@ -1,0 +1,135 @@
+INFO 2025-07-18 17:15:16,722 autoreload 14780 10388 Watching for file changes with StatReloader
+INFO 2025-07-18 17:18:33,057 basehttp 14780 24560 "GET /admin HTTP/1.1" 301 0
+INFO 2025-07-18 17:18:33,098 basehttp 14780 21732 "GET /admin/ HTTP/1.1" 302 0
+INFO 2025-07-18 17:18:33,149 basehttp 14780 21732 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 4218
+INFO 2025-07-18 17:18:33,225 basehttp 14780 21732 "GET /static/admin/css/base.css HTTP/1.1" 200 21310
+INFO 2025-07-18 17:18:33,233 basehttp 14780 21732 "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2929
+INFO 2025-07-18 17:18:33,236 basehttp 14780 21732 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2694
+INFO 2025-07-18 17:18:33,239 basehttp 14780 21732 "GET /static/admin/css/login.css HTTP/1.1" 200 958
+INFO 2025-07-18 17:18:33,241 basehttp 14780 21732 "GET /static/admin/css/responsive.css HTTP/1.1" 200 18559
+INFO 2025-07-18 17:18:33,242 basehttp 14780 21732 "GET /static/admin/js/theme.js HTTP/1.1" 200 1943
+INFO 2025-07-18 17:18:33,242 basehttp 14780 21732 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+WARNING 2025-07-18 17:18:33,380 log 14780 21732 Not Found: /favicon.ico
+WARNING 2025-07-18 17:18:33,380 basehttp 14780 21732 "GET /favicon.ico HTTP/1.1" 404 3225
+INFO 2025-07-18 17:18:37,925 basehttp 14780 21732 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 4379
+INFO 2025-07-18 17:18:44,812 basehttp 14780 21732 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 4379
+INFO 2025-07-18 17:19:43,596 autoreload 20860 12304 Watching for file changes with StatReloader
+INFO 2025-07-18 17:19:50,489 basehttp 20860 10372 "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2025-07-18 17:19:50,581 basehttp 20860 10372 "GET /admin/ HTTP/1.1" 200 12365
+INFO 2025-07-18 17:19:50,635 basehttp 20860 10372 "GET /static/admin/css/dashboard.css HTTP/1.1" 200 441
+INFO 2025-07-18 17:19:50,646 basehttp 20860 19900 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 200 380
+INFO 2025-07-18 17:19:50,646 basehttp 20860 10372 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
+INFO 2025-07-18 17:20:15,692 basehttp 20860 10372 "GET /admin/shop/product/ HTTP/1.1" 200 13653
+INFO 2025-07-18 17:20:15,720 basehttp 20860 10372 "GET /static/admin/css/changelists.css HTTP/1.1" 200 6566
+INFO 2025-07-18 17:20:15,736 basehttp 20860 19900 "GET /static/admin/js/jquery.init.js HTTP/1.1" 200 347
+INFO 2025-07-18 17:20:15,736 basehttp 20860 19444 "GET /static/admin/js/core.js HTTP/1.1" 200 5682
+INFO 2025-07-18 17:20:15,741 basehttp 20860 19444 "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 200 8943
+INFO 2025-07-18 17:20:15,741 basehttp 20860 19900 "GET /static/admin/js/actions.js HTTP/1.1" 200 7872
+INFO 2025-07-18 17:20:15,743 basehttp 20860 10372 "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 200 292458
+INFO 2025-07-18 17:20:15,749 basehttp 20860 19900 "GET /static/admin/js/prepopulate.js HTTP/1.1" 200 1531
+INFO 2025-07-18 17:20:15,749 basehttp 20860 19444 "GET /static/admin/js/urlify.js HTTP/1.1" 200 7887
+INFO 2025-07-18 17:20:15,752 basehttp 20860 19900 "GET /static/admin/img/search.svg HTTP/1.1" 200 458
+INFO 2025-07-18 17:20:15,760 basehttp 20860 19444 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+INFO 2025-07-18 17:20:15,760 basehttp 20860 10372 "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 200 232381
+INFO 2025-07-18 17:20:15,769 basehttp 20860 10372 "GET /static/admin/js/filters.js HTTP/1.1" 200 978
+INFO 2025-07-18 17:20:15,792 basehttp 20860 10372 "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 200 331
+INFO 2025-07-18 17:20:18,982 basehttp 20860 10372 "GET /admin/shop/product/add/ HTTP/1.1" 200 38369
+INFO 2025-07-18 17:20:19,007 basehttp 20860 19900 "GET /static/admin/js/collapse.js HTTP/1.1" 200 1803
+INFO 2025-07-18 17:20:19,012 basehttp 20860 19444 "GET /static/admin/js/calendar.js HTTP/1.1" 200 8466
+INFO 2025-07-18 17:20:19,012 basehttp 20860 10372 "GET /static/admin/css/forms.css HTTP/1.1" 200 9090
+INFO 2025-07-18 17:20:19,012 basehttp 20860 19812 "GET /static/admin/js/inlines.js HTTP/1.1" 200 15526
+INFO 2025-07-18 17:20:19,015 basehttp 20860 16220 "GET /static/admin/js/admin/DateTimeShortcuts.js HTTP/1.1" 200 19319
+INFO 2025-07-18 17:20:19,016 basehttp 20860 19444 "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 200 581
+INFO 2025-07-18 17:20:19,016 basehttp 20860 25544 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+INFO 2025-07-18 17:20:19,016 basehttp 20860 16220 "GET /static/admin/img/icon-deletelink.svg HTTP/1.1" 200 392
+INFO 2025-07-18 17:20:19,016 basehttp 20860 19900 "GET /static/admin/css/widgets.css HTTP/1.1" 200 11921
+INFO 2025-07-18 17:20:19,337 basehttp 20860 16220 "GET /static/admin/js/prepopulate_init.js HTTP/1.1" 200 586
+INFO 2025-07-18 17:20:19,338 basehttp 20860 25544 "GET /static/admin/js/change_form.js HTTP/1.1" 200 606
+INFO 2025-07-18 17:20:19,407 basehttp 20860 25544 "GET /static/admin/img/inline-delete.svg HTTP/1.1" 200 560
+INFO 2025-07-19 10:24:19,143 basehttp 20860 5644 "GET /admin/shop/product/add/ HTTP/1.1" 200 38369
+INFO 2025-07-19 10:24:19,181 basehttp 20860 5644 "GET /static/admin/css/base.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,183 basehttp 20860 6344 "GET /static/admin/css/dark_mode.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,187 basehttp 20860 5644 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,187 basehttp 20860 6344 "GET /static/admin/css/forms.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,187 basehttp 20860 20928 "GET /static/admin/css/responsive.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,195 basehttp 20860 6344 "GET /static/admin/js/collapse.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,195 basehttp 20860 5644 "GET /static/admin/js/calendar.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,195 basehttp 20860 20928 "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,195 basehttp 20860 5644 "GET /static/admin/js/admin/DateTimeShortcuts.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,195 basehttp 20860 6344 "GET /static/admin/css/widgets.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,208 basehttp 20860 5644 "GET /static/admin/js/jquery.init.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,208 basehttp 20860 6344 "GET /static/admin/js/core.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,215 basehttp 20860 5644 "GET /static/admin/js/inlines.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,216 basehttp 20860 6344 "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,219 basehttp 20860 5644 "GET /static/admin/js/actions.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,222 basehttp 20860 6344 "GET /static/admin/js/urlify.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,225 basehttp 20860 20928 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+INFO 2025-07-19 10:24:19,226 basehttp 20860 6344 "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,226 basehttp 20860 5644 "GET /static/admin/js/prepopulate.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,231 basehttp 20860 6344 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,231 basehttp 20860 20928 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,252 basehttp 20860 20928 "GET /static/admin/img/icon-deletelink.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,252 basehttp 20860 6344 "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,266 basehttp 20860 20928 "GET /static/admin/js/theme.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,266 basehttp 20860 6344 "GET /static/admin/js/prepopulate_init.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,266 basehttp 20860 5644 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,268 basehttp 20860 20928 "GET /static/admin/js/change_form.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:24:19,312 basehttp 20860 20928 "GET /static/admin/img/inline-delete.svg HTTP/1.1" 304 0
+WARNING 2025-07-19 10:24:19,481 log 20860 20928 Not Found: /favicon.ico
+WARNING 2025-07-19 10:24:19,481 basehttp 20860 20928 "GET /favicon.ico HTTP/1.1" 404 3225
+INFO 2025-07-19 10:24:25,634 basehttp 20860 20928 "GET /admin/shop/product/add/ HTTP/1.1" 200 38369
+INFO 2025-07-19 10:24:25,658 basehttp 20860 20928 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+INFO 2025-07-19 10:25:18,394 autoreload 17264 27352 Watching for file changes with StatReloader
+WARNING 2025-07-19 10:25:28,229 log 17264 7968 Not Found: /
+WARNING 2025-07-19 10:25:28,229 basehttp 17264 7968 "GET / HTTP/1.1" 404 3174
+WARNING 2025-07-19 10:25:28,356 log 17264 7968 Not Found: /favicon.ico
+WARNING 2025-07-19 10:25:28,356 basehttp 17264 7968 "GET /favicon.ico HTTP/1.1" 404 3225
+INFO 2025-07-19 10:25:39,761 basehttp 17264 19232 "GET /admin/ HTTP/1.1" 200 12365
+INFO 2025-07-19 10:25:39,794 basehttp 17264 19232 "GET /static/admin/css/dashboard.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:25:44,763 basehttp 17264 19232 "GET /admin/shop/product/ HTTP/1.1" 200 13653
+INFO 2025-07-19 10:25:44,795 basehttp 17264 19232 "GET /static/admin/css/changelists.css HTTP/1.1" 304 0
+INFO 2025-07-19 10:25:44,795 basehttp 17264 13204 "GET /static/admin/img/search.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:25:44,799 basehttp 17264 13204 "GET /static/admin/js/filters.js HTTP/1.1" 304 0
+INFO 2025-07-19 10:25:44,802 basehttp 17264 20156 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+INFO 2025-07-19 10:25:44,820 basehttp 17264 20156 "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 304 0
+INFO 2025-07-19 10:25:48,099 basehttp 17264 20156 "GET /admin/shop/product/add/ HTTP/1.1" 200 38369
+INFO 2025-07-19 10:25:48,126 basehttp 17264 20156 "GET /admin/jsi18n/ HTTP/1.1" 200 3343
+WARNING 2025-07-20 03:07:58,365 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:07:58,374 basehttp 17264 26196 "GET /domains/check-ir?domain=but HTTP/1.1" 404 3251
+WARNING 2025-07-20 03:07:58,387 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:07:58,387 basehttp 17264 26196 "GET /domains/check-ir?domain=buti HTTP/1.1" 404 3252
+WARNING 2025-07-20 03:07:58,616 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:07:58,616 basehttp 17264 26196 "GET /domains/check-ir?domain=butik HTTP/1.1" 404 3253
+WARNING 2025-07-20 03:08:11,005 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:08:11,006 basehttp 17264 26196 "GET /domains/check-ir?domain=buti HTTP/1.1" 404 3252
+WARNING 2025-07-20 03:08:12,341 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:08:12,341 basehttp 17264 26196 "GET /domains/check-ir?domain=but HTTP/1.1" 404 3251
+WARNING 2025-07-20 03:09:41,794 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:41,799 basehttp 17264 26196 "GET /domains/check-ir?domain=buti HTTP/1.1" 404 3252
+WARNING 2025-07-20 03:09:43,426 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:43,426 basehttp 17264 26196 "GET /domains/check-ir?domain=butik HTTP/1.1" 404 3253
+WARNING 2025-07-20 03:09:49,296 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:49,297 basehttp 17264 26196 "GET /domains/check-ir?domain=1butik HTTP/1.1" 404 3254
+WARNING 2025-07-20 03:09:50,035 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:50,037 basehttp 17264 26196 "GET /domains/check-ir?domain=11butik HTTP/1.1" 404 3255
+WARNING 2025-07-20 03:09:51,772 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:51,772 basehttp 17264 26196 "GET /domains/check-ir?domain=1butik HTTP/1.1" 404 3254
+WARNING 2025-07-20 03:09:51,978 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:51,978 basehttp 17264 26196 "GET /domains/check-ir?domain=butik HTTP/1.1" 404 3253
+WARNING 2025-07-20 03:09:54,448 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:54,448 basehttp 17264 26196 "GET /domains/check-ir?domain=utik HTTP/1.1" 404 3252
+WARNING 2025-07-20 03:09:54,720 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:09:54,720 basehttp 17264 26196 "GET /domains/check-ir?domain=tik HTTP/1.1" 404 3251
+WARNING 2025-07-20 03:10:12,425 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:10:12,426 basehttp 17264 26196 "GET /domains/check-ir?domain=fdf HTTP/1.1" 404 3251
+WARNING 2025-07-20 03:10:12,503 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:10:12,503 basehttp 17264 26196 "GET /domains/check-ir?domain=fdfd HTTP/1.1" 404 3252
+WARNING 2025-07-20 03:10:12,596 log 17264 26196 Not Found: /domains/check-ir
+WARNING 2025-07-20 03:10:12,596 basehttp 17264 26196 "GET /domains/check-ir?domain=fdfds HTTP/1.1" 404 3253
+INFO 2025-07-20 20:39:11,838 basehttp 17264 764 "GET /admin/shop/product/add/ HTTP/1.1" 302 0
+INFO 2025-07-20 20:39:11,948 basehttp 17264 764 "GET /admin/login/?next=/admin/shop/product/add/ HTTP/1.1" 200 4252
+INFO 2025-07-20 20:39:12,047 basehttp 17264 764 "GET /static/admin/css/login.css HTTP/1.1" 200 958
+WARNING 2025-07-20 20:39:12,225 log 17264 764 Not Found: /favicon.ico
+WARNING 2025-07-20 20:39:12,227 basehttp 17264 764 "GET /favicon.ico HTTP/1.1" 404 3225
+WARNING 2025-07-20 21:13:38,733 log 17264 7008 Not Found: /domains/check-ir
+WARNING 2025-07-20 21:13:38,733 basehttp 17264 7008 "GET /domains/check-ir?domain=fdfds HTTP/1.1" 404 3253
