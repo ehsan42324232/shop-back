@@ -1,0 +1,136 @@
+# Mall E-commerce Platform Requirements
+# Consolidated from requirements_with_attributes.txt
+# This is the main requirements file - others will be deprecated
+
+# Core Django framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-filter==23.3
+dj-database-url==2.1.0
+psycopg2-binary==2.9.7
+redis==4.6.0
+djangorestframework-simplejwt==5.3.0
+
+# File handling and media
+Pillow==10.0.1
+django-storages==1.14.2
+boto3==1.29.7
+openpyxl==3.1.2
+pandas==2.1.3
+python-magic==0.4.27
+django-cleanup==8.0.0
+
+# Product hierarchy and attributes system  
+django-mptt==0.14.0                    # For hierarchical categories
+django-taggit==4.0.0                   # Enhanced tagging system
+django-polymorphic==3.1.0              # For model inheritance
+django-colorfield==0.9.0               # Color picker fields
+
+# Search functionality
+django-elasticsearch-dsl==7.2.2        # Advanced search
+elasticsearch==7.17.9                  # Search engine
+whoosh==2.7.4                          # Alternative search
+
+# User authentication & OTP
+django-allauth==0.57.0                 # Social authentication
+phonenumbers==8.13.25                  # Phone number validation
+
+# Payment integration (Iranian gateways)
+requests==2.31.0                       # HTTP requests for payment APIs
+zeep==4.2.1                           # SOAP client for some Iranian gateways
+
+# SMS services (Iranian providers)
+python-requests==2.31.0               # For SMS API calls
+
+# Forms and UI
+django-formtools==2.4.1                # Multi-step forms
+django-crispy-forms==2.1                # Better form rendering
+crispy-bootstrap5==0.7                  # Bootstrap 5 support
+
+# Image processing
+django-imagekit==4.1.0                 # Image processing
+easy-thumbnails==2.8.5                 # Thumbnail generation
+
+# SEO and meta
+django-meta==2.4.0                     # Meta tags management
+django-robots==5.0                     # Robots.txt management
+
+# Performance and caching
+django-cachalot==2.6.1                 # Automatic ORM caching
+django-cache-memoize==0.1.10           # Function result caching
+
+# API documentation
+drf-spectacular==0.26.5                # API documentation
+
+# Multi-language (Persian/Farsi support)
+django-modeltranslation==0.18.11       # Model translation
+
+# Background tasks
+celery==5.3.4                          # Task queue
+django-celery-beat==2.5.0              # Periodic tasks
+django-celery-results==2.5.1           # Task results
+
+# Security
+django-security==0.20.0               # Security enhancements
+django-csp==3.7                       # Content Security Policy
+django-axes==6.1.1                    # Brute force protection
+
+# Utilities
+python-slugify==8.0.1                 # Slug generation
+pycountry==22.3.13                    # Country data
+python-dateutil==2.8.2                # Date utilities
+pytz==2023.3                          # Timezone support
+
+# Recommendation system
+scikit-learn==1.3.2                   # ML algorithms for recommendations
+numpy==1.24.4                         # Numerical computing
+joblib==1.3.2                         # ML model persistence
+
+# Email services
+django-anymail==10.2                  # Email service integration
+premailer==3.10.0                     # CSS inlining for emails
+
+# Workflow management
+django-fsm==2.8.1                     # Finite state machines
+django-reversion==5.0.8               # Model versioning
+
+# Permissions
+django-guardian==2.4.0                # Object-level permissions
+django-rules==3.3.0                   # Rule-based permissions
+
+# Rate limiting
+django-ratelimit==4.1.0               # Rate limiting
+
+# Deployment
+gunicorn==21.2.0                       # WSGI server
+whitenoise==6.6.0                     # Static file serving
+django-environ==0.11.2                # Environment management
+
+# Monitoring and logging
+structlog==23.2.0                     # Structured logging
+django-structlog==6.0.0               # Django integration
+sentry-sdk==1.38.0                    # Error tracking
+
+# Development and testing (optional, comment out for production)
+factory-boy==3.3.0                     # Test data generation
+faker==19.12.0                         # Fake data generation
+pytest==7.4.3                          # Testing framework
+pytest-django==4.7.0                   # Django pytest integration
+pytest-cov==4.1.0                      # Coverage reporting
+django-silk==5.0.3                     # Request profiling
+
+# Code quality (development only)
+# flake8==6.1.0                        # Linting
+# black==23.10.1                       # Code formatting
+# isort==5.12.0                        # Import sorting
+# mypy==1.7.0                          # Type checking
+
+# Documentation (development only)  
+# sphinx==7.2.6                        # Documentation generation
+# sphinx-rtd-theme==1.3.0              # Read the Docs theme
+
+# Development tools (development only)
+# ipython==8.17.2                      # Enhanced Python shell
+# jupyter==1.0.0                       # Notebook environment
+# pre-commit==3.5.0                    # Git hooks
