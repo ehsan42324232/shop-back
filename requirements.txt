@@ -1,15 +1,67 @@
+# Mall Platform - Complete Requirements
+# All dependencies needed for the Iranian e-commerce platform
+
+# Core Django Framework
 Django==4.1.13
 djangorestframework>=3.14
 django-cors-headers>=4.0
 django-filter>=23.0
 drf-spectacular>=0.26
+
+# Database
 psycopg2-binary>=2.9
+
+# Authentication & Security
+djangorestframework-simplejwt>=5.2
+django-allauth>=0.54
+phonenumbers>=8.13
+
+# Media & Files
 Pillow>=10.0
+python-magic>=0.4
+django-cleanup>=8.0
+
+# Data Processing
 pandas>=2.0
 openpyxl>=3.1
-whitenoise>=6.5
-python-decouple>=3.8
-requests>=2.31
 python-dateutil>=2.8
+
+# HTTP Requests (for payment gateways and social media)
+requests>=2.31
+zeep>=4.2  # For SOAP-based Iranian payment gateways
+
+# Caching & Performance
+redis>=4.5
+django-redis>=5.3
+
+# Real-time Features (for chat)
 channels>=4.0.0
 channels-redis>=4.1.0
+
+# SMS Services (Iranian providers)
+kavenegar>=1.1  # Popular Iranian SMS service
+
+# Deployment
+whitenoise>=6.5
+python-decouple>=3.8
+gunicorn>=21.2
+
+# Persian/Farsi Support
+persiantools>=4.0
+jdatetime>=4.1
+
+# Image Processing
+django-imagekit>=4.1
+easy-thumbnails>=2.8
+
+# Forms and Admin
+django-admin-interface>=0.26
+django-crispy-forms>=2.0
+
+# Logging and Monitoring
+structlog>=23.1
+sentry-sdk[django]>=1.32
+
+# Development Tools (comment out for production)
+django-debug-toolbar>=4.2
+django-extensions>=3.2
